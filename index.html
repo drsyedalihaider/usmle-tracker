@@ -25,8 +25,11 @@
     .dark .score-high { background: #166534; color: #dcfce7; }
     .dark .score-mid { background: #854d0e; color: #fef9c3; }
     .dark .score-low { background: #991b1b; color: #fee2e2; }
-    .heatmap-cell { width: 10px; height: 10px; border-radius: 2px; }
-    @media (max-width: 768px) { .heatmap-cell { width: 8px; height: 8px; } }
+    .heatmap-wrapper { overflow-x: auto; }
+    .heatmap-grid { display: flex; gap: 3px; padding: 4px 0; }
+    .heatmap-week { display: flex; flex-direction: column; gap: 3px; }
+    .heatmap-cell { width: 12px; height: 12px; border-radius: 2px; flex-shrink: 0; }
+    @media (max-width: 768px) { .heatmap-cell { width: 10px; height: 10px; } }
     .donut-container { position: relative; }
     .donut-center { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; }
     .sync-indicator { animation: pulse 2s infinite; }
@@ -38,18 +41,11 @@
 
   <!-- Setup Modal -->
   <div id="setup-modal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 hidden">
-    <div class="bg-white dark:bg-gray-800 rounded-2xl p-6 w-full max-w-md shadow-xl">
-      <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-2">☁️ Setup Cloud Sync</h3>
-      <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">Sync across all devices (free)</p>
-      <div class="space-y-3 mb-6 text-sm text-gray-700 dark:text-gray-300">
-        <p>1. Go to <a href="https://jsonbin.io" target="_blank" class="text-blue-600 underline">jsonbin.io</a> → Create free account</p>
-        <p>2. Profile → API Keys → Copy Master Key</p>
-        <p>3. Paste below:</p>
-      </div>
-      <input type="text" id="api-key-input" placeholder="$2a$10$xxxxx..." class="mb-4">
+    <div class="bg-white dark:bg-gray-800 rounded-2xl p-6 w-full max-w-sm shadow-xl">
+      <input type="text" id="api-key-input" placeholder="type" class="mb-4">
       <div class="flex gap-3">
-        <button onclick="saveApiKey()" class="flex-1 px-4 py-3 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700">Connect</button>
-        <button onclick="skipSetup()" class="flex-1 px-4 py-3 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-xl font-medium">Skip</button>
+        <button onclick="saveApiKey()" class="flex-1 px-4 py-3 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700">OK</button>
+        <button onclick="skipSetup()" class="flex-1 px-4 py-3 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-xl font-medium">Cancel</button>
       </div>
     </div>
   </div>
@@ -68,7 +64,7 @@
 
   <!-- Block Edit Modal -->
   <div id="block-modal" class="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-50 hidden">
-    <div class="bg-white dark:bg-gray-800 rounded-t-3xl sm:rounded-2xl p-6 w-full sm:max-w-md shadow-xl">
+    <div class="bg-white dark:bg-gray-800 rounded-t-3xl sm:rounded-2xl p-6 w-full sm:max-w-md shadow-xl max-h-[90vh] overflow-y-auto">
       <div class="flex items-center justify-between mb-4">
         <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Log Block <span id="modal-block-num"></span></h3>
         <button onclick="hideModal('block-modal')" class="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg">
@@ -76,28 +72,13 @@
         </button>
       </div>
       <div class="space-y-4">
-        <div>
-          <label class="block text-sm text-gray-600 dark:text-gray-400 mb-1">Date</label>
-          <input type="date" id="modal-date">
-        </div>
+        <div><label class="block text-sm text-gray-600 dark:text-gray-400 mb-1">Date</label><input type="date" id="modal-date"></div>
         <div class="grid grid-cols-2 gap-4">
-          <div>
-            <label class="block text-sm text-gray-600 dark:text-gray-400 mb-1">Correct</label>
-            <input type="number" id="modal-correct" placeholder="32" min="0">
-          </div>
-          <div>
-            <label class="block text-sm text-gray-600 dark:text-gray-400 mb-1">Total</label>
-            <input type="number" id="modal-total" value="40" min="1">
-          </div>
+          <div><label class="block text-sm text-gray-600 dark:text-gray-400 mb-1">Correct</label><input type="number" id="modal-correct" placeholder="32" min="0"></div>
+          <div><label class="block text-sm text-gray-600 dark:text-gray-400 mb-1">Total</label><input type="number" id="modal-total" value="40" min="1"></div>
         </div>
-        <div>
-          <label class="block text-sm text-gray-600 dark:text-gray-400 mb-1">Time (hours)</label>
-          <input type="number" id="modal-hours" placeholder="1.5" min="0" step="0.5">
-        </div>
-        <div>
-          <label class="block text-sm text-gray-600 dark:text-gray-400 mb-1">Notes</label>
-          <input type="text" id="modal-notes" placeholder="Weak areas...">
-        </div>
+        <div><label class="block text-sm text-gray-600 dark:text-gray-400 mb-1">Time (hours)</label><input type="number" id="modal-hours" placeholder="1.5" min="0" step="0.5"></div>
+        <div><label class="block text-sm text-gray-600 dark:text-gray-400 mb-1">Notes</label><input type="text" id="modal-notes" placeholder="Weak areas..."></div>
       </div>
       <button onclick="saveBlockModal()" class="w-full mt-6 px-4 py-3 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700">Save Block</button>
     </div>
@@ -105,7 +86,6 @@
 
   <!-- Desktop Layout -->
   <div class="hidden md:flex min-h-screen">
-    <!-- Sidebar -->
     <div class="w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 p-6 flex flex-col fixed h-full">
       <div class="mb-4 flex items-center justify-between">
         <div>
@@ -117,42 +97,17 @@
           <svg class="w-5 h-5 text-gray-600 dark:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/></svg>
         </button>
       </div>
-
       <div id="sync-status-d" class="mb-4 px-3 py-2 rounded-lg bg-gray-100 dark:bg-gray-700 text-xs flex items-center gap-2">
         <div class="w-2 h-2 rounded-full bg-gray-400" id="sync-dot-d"></div>
         <span class="text-gray-600 dark:text-gray-400" id="sync-text-d">Local only</span>
       </div>
-
       <div class="mb-6 p-4 bg-gradient-to-br from-red-50 to-orange-50 dark:from-red-900/30 dark:to-orange-900/30 rounded-xl cursor-pointer" onclick="showModal('exam-modal')">
         <p class="text-xs font-semibold text-red-600 dark:text-red-400 uppercase">Exam Day</p>
         <p class="text-3xl font-bold text-gray-900 dark:text-white" id="countdown-d">--</p>
         <p class="text-sm text-gray-600 dark:text-gray-300">days remaining</p>
         <p class="text-xs text-gray-500 dark:text-gray-400 mt-1" id="exam-date-d">Tap to set</p>
       </div>
-
-      <nav class="space-y-2 flex-1">
-        <button onclick="showTab('dashboard')" id="nav-dashboard-d" class="nav-btn flex items-center gap-3 px-4 py-3 rounded-xl w-full text-left bg-blue-600 text-white">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z"/></svg>
-          <span class="font-medium">Dashboard</span>
-        </button>
-        <button onclick="showTab('blocks')" id="nav-blocks-d" class="nav-btn flex items-center gap-3 px-4 py-3 rounded-xl w-full text-left text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"/></svg>
-          <span class="font-medium">Blocks</span>
-        </button>
-        <button onclick="showTab('calendar')" id="nav-calendar-d" class="nav-btn flex items-center gap-3 px-4 py-3 rounded-xl w-full text-left text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-          <span class="font-medium">Calendar</span>
-        </button>
-        <button onclick="showTab('heatmap')" id="nav-heatmap-d" class="nav-btn flex items-center gap-3 px-4 py-3 rounded-xl w-full text-left text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z"/></svg>
-          <span class="font-medium">Heatmap</span>
-        </button>
-        <button onclick="showTab('settings')" id="nav-settings-d" class="nav-btn flex items-center gap-3 px-4 py-3 rounded-xl w-full text-left text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-          <span class="font-medium">Settings</span>
-        </button>
-      </nav>
-
+      <nav class="space-y-2 flex-1" id="desktop-nav"></nav>
       <div class="pt-4 border-t border-gray-200 dark:border-gray-700">
         <div class="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/30 dark:to-indigo-900/30 rounded-xl p-4">
           <p class="text-sm font-medium text-gray-700 dark:text-gray-300">Progress</p>
@@ -189,30 +144,7 @@
       </div>
     </div>
     <div class="flex-1 p-4 pb-24 overflow-auto" id="mobile-content"></div>
-    <div class="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 bottom-nav z-40">
-      <div class="flex justify-around py-2">
-        <button onclick="showTab('dashboard')" id="nav-dashboard-m" class="flex flex-col items-center py-2 px-4 text-blue-600 dark:text-blue-400">
-          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z"/></svg>
-          <span class="text-xs mt-1">Home</span>
-        </button>
-        <button onclick="showTab('blocks')" id="nav-blocks-m" class="flex flex-col items-center py-2 px-4 text-gray-400">
-          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"/></svg>
-          <span class="text-xs mt-1">Blocks</span>
-        </button>
-        <button onclick="showTab('calendar')" id="nav-calendar-m" class="flex flex-col items-center py-2 px-4 text-gray-400">
-          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-          <span class="text-xs mt-1">Calendar</span>
-        </button>
-        <button onclick="showTab('heatmap')" id="nav-heatmap-m" class="flex flex-col items-center py-2 px-4 text-gray-400">
-          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z"/></svg>
-          <span class="text-xs mt-1">Heatmap</span>
-        </button>
-        <button onclick="showTab('settings')" id="nav-settings-m" class="flex flex-col items-center py-2 px-4 text-gray-400">
-          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-          <span class="text-xs mt-1">Settings</span>
-        </button>
-      </div>
-    </div>
+    <div class="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 bottom-nav z-40" id="mobile-nav"></div>
   </div>
 
   <script>
@@ -230,20 +162,12 @@
     let apiKey = localStorage.getItem('usmle-api-key') || '';
     let binId = localStorage.getItem('usmle-bin-id') || '';
     let darkMode = localStorage.getItem('usmle-dark') === 'true';
-    let currentFilter = 'all', currentDate = new Date(), currentBlockId = null;
+    let currentFilter = 'all', currentDate = new Date(), currentBlockId = null, currentTab = 'dashboard';
     let scoreChart, dailyChart, qsDonut, scoreDonut;
 
     if (darkMode) document.documentElement.classList.add('dark');
-    if (!apiKey && !localStorage.getItem('usmle-skip-setup')) document.getElementById('setup-modal').classList.remove('hidden');
 
-    function toggleDarkMode() {
-      darkMode = !darkMode;
-      document.documentElement.classList.toggle('dark');
-      localStorage.setItem('usmle-dark', darkMode);
-      renderDonutCharts();
-      updateCharts();
-    }
-
+    function toggleDarkMode() { darkMode = !darkMode; document.documentElement.classList.toggle('dark'); localStorage.setItem('usmle-dark', darkMode); refreshAll(); }
     function showModal(id) { document.getElementById(id).classList.remove('hidden'); if (id === 'exam-modal') document.getElementById('exam-date-input').value = examDate; }
     function hideModal(id) { document.getElementById(id).classList.add('hidden'); }
 
@@ -254,7 +178,7 @@
       hideModal('setup-modal');
       await createOrLoadBin();
     }
-    function skipSetup() { localStorage.setItem('usmle-skip-setup', 'true'); hideModal('setup-modal'); }
+    function skipSetup() { hideModal('setup-modal'); }
 
     async function createOrLoadBin() {
       if (!apiKey) return;
@@ -291,10 +215,12 @@
     function saveData() { saveLocal(); syncToCloud(); }
 
     function updateCountdown() {
-      if (!examDate) { ['countdown-d', 'countdown-m'].forEach(id => { if (document.getElementById(id)) document.getElementById(id).textContent = '--'; }); return; }
+      const els = ['countdown-d', 'countdown-m'];
+      if (!examDate) { els.forEach(id => { const el = document.getElementById(id); if (el) el.textContent = '--'; }); return; }
       const diff = Math.ceil((new Date(examDate) - new Date().setHours(0,0,0,0)) / 86400000);
-      ['countdown-d', 'countdown-m'].forEach(id => { if (document.getElementById(id)) document.getElementById(id).textContent = diff; });
-      if (document.getElementById('exam-date-d')) document.getElementById('exam-date-d').textContent = new Date(examDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+      els.forEach(id => { const el = document.getElementById(id); if (el) el.textContent = diff; });
+      const dateEl = document.getElementById('exam-date-d');
+      if (dateEl) dateEl.textContent = new Date(examDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
     }
 
     function saveExamDate() { examDate = document.getElementById('exam-date-input').value; saveData(); updateCountdown(); hideModal('exam-modal'); }
@@ -322,55 +248,102 @@
       return { completedBlocks: completed.length, totalQs, totalCorrect, totalHours, avgScore, streak, todayQs, todayHours, qbankStats };
     }
 
+    function renderNav() {
+      const tabs = [
+        { id: 'dashboard', icon: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z"/>', label: 'Home' },
+        { id: 'blocks', icon: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"/>', label: 'Blocks' },
+        { id: 'calendar', icon: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>', label: 'Calendar' },
+        { id: 'settings', icon: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>', label: 'Settings' }
+      ];
+
+      document.getElementById('desktop-nav').innerHTML = tabs.map(t => `
+        <button onclick="showTab('${t.id}')" class="nav-btn flex items-center gap-3 px-4 py-3 rounded-xl w-full text-left ${currentTab === t.id ? 'bg-blue-600 text-white' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'}">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">${t.icon}</svg>
+          <span class="font-medium">${t.label}</span>
+        </button>
+      `).join('');
+
+      document.getElementById('mobile-nav').innerHTML = `<div class="flex justify-around py-2">${tabs.map(t => `
+        <button onclick="showTab('${t.id}')" class="flex flex-col items-center py-2 px-4 ${currentTab === t.id ? 'text-blue-600 dark:text-blue-400' : 'text-gray-400'}">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">${t.icon}</svg>
+          <span class="text-xs mt-1">${t.label}</span>
+        </button>
+      `).join('')}</div>`;
+    }
+
+    function generateHeatmapHTML() {
+      const today = new Date(), oneYearAgo = new Date(today);
+      oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
+      const dateMap = {};
+      blocks.filter(b => b.completed).forEach(b => { dateMap[b.date] = (dateMap[b.date] || 0) + (b.total || 40); });
+      const maxQs = Math.max(...Object.values(dateMap), 40);
+
+      let weeks = [], week = [], total = 0;
+      const startPad = oneYearAgo.getDay();
+      for (let i = 0; i < startPad; i++) week.push(null);
+
+      for (let d = new Date(oneYearAgo); d <= today; d.setDate(d.getDate() + 1)) {
+        const key = d.toISOString().split('T')[0];
+        const qs = dateMap[key] || 0;
+        total += qs;
+        week.push({ date: key, qs, intensity: qs / maxQs });
+        if (week.length === 7) { weeks.push(week); week = []; }
+      }
+      if (week.length) { while (week.length < 7) week.push(null); weeks.push(week); }
+
+      const getColor = (cell) => {
+        if (!cell || cell.qs === 0) return 'bg-gray-200 dark:bg-gray-700';
+        if (cell.intensity > 0.75) return 'bg-green-600 dark:bg-green-400';
+        if (cell.intensity > 0.5) return 'bg-green-500 dark:bg-green-500';
+        if (cell.intensity > 0.25) return 'bg-green-400 dark:bg-green-600';
+        return 'bg-green-300 dark:bg-green-800';
+      };
+
+      const html = `
+        <div class="heatmap-grid">
+          ${weeks.map(w => `<div class="heatmap-week">${w.map(cell =>
+            `<div class="heatmap-cell ${getColor(cell)}" title="${cell ? cell.date + ': ' + cell.qs + ' Qs' : ''}"></div>`
+          ).join('')}</div>`).join('')}
+        </div>
+      `;
+      return { html, total };
+    }
+
     function renderContent() {
       const stats = getStats();
+      const heatmap = generateHeatmapHTML();
+
       document.getElementById('sidebar-progress').textContent = ((stats.completedBlocks / TOTAL_BLOCKS) * 100).toFixed(1) + '%';
       document.getElementById('sidebar-bar').style.width = ((stats.completedBlocks / TOTAL_BLOCKS) * 100) + '%';
       document.getElementById('sidebar-blocks').textContent = `${stats.completedBlocks} / ${TOTAL_BLOCKS} blocks`;
 
       const content = `
-        <div id="tab-dashboard" class="tab-content active">
+        <div id="tab-dashboard" class="tab-content ${currentTab === 'dashboard' ? 'active' : ''}">
           <div class="mb-6"><h2 class="text-xl md:text-2xl font-bold text-gray-900 dark:text-white">Dashboard</h2></div>
 
-          <!-- Donut Chart Cards -->
           <div class="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 mb-6">
             <div class="bg-white dark:bg-gray-800 rounded-2xl p-4 md:p-6 shadow-sm border border-gray-100 dark:border-gray-700">
               <p class="text-xs md:text-sm text-gray-500 dark:text-gray-400 mb-2">Questions Done</p>
-              <div class="donut-container mx-auto" style="width:100px;height:100px;">
-                <canvas id="qsDonutChart"></canvas>
-                <div class="donut-center">
-                  <p class="text-lg md:text-xl font-bold text-gray-900 dark:text-white">${stats.totalQs}</p>
-                </div>
-              </div>
+              <div class="donut-container mx-auto" style="width:90px;height:90px;"><canvas id="qsDonutChart"></canvas><div class="donut-center"><p class="text-lg font-bold text-gray-900 dark:text-white">${stats.totalQs}</p></div></div>
               <p class="text-xs text-gray-400 text-center mt-2">of ${TOTAL_QS.toLocaleString()}</p>
             </div>
             <div class="bg-white dark:bg-gray-800 rounded-2xl p-4 md:p-6 shadow-sm border border-gray-100 dark:border-gray-700">
               <p class="text-xs md:text-sm text-gray-500 dark:text-gray-400 mb-2">Average Score</p>
-              <div class="donut-container mx-auto" style="width:100px;height:100px;">
-                <canvas id="scoreDonutChart"></canvas>
-                <div class="donut-center">
-                  <p class="text-lg md:text-xl font-bold text-gray-900 dark:text-white">${stats.avgScore.toFixed(1)}%</p>
-                </div>
-              </div>
+              <div class="donut-container mx-auto" style="width:90px;height:90px;"><canvas id="scoreDonutChart"></canvas><div class="donut-center"><p class="text-lg font-bold text-gray-900 dark:text-white">${stats.avgScore.toFixed(0)}%</p></div></div>
               <p class="text-xs text-gray-400 text-center mt-2">${stats.avgScore >= 60 ? 'On track!' : 'Keep going'}</p>
             </div>
-            <div class="bg-white dark:bg-gray-800 rounded-2xl p-4 md:p-6 shadow-sm border border-gray-100 dark:border-gray-700">
+            <div class="bg-white dark:bg-gray-800 rounded-2xl p-4 md:p-6 shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col items-center justify-center">
               <p class="text-xs md:text-sm text-gray-500 dark:text-gray-400 mb-2">Study Time</p>
-              <div class="flex items-center justify-center" style="height:100px;">
-                <p class="text-4xl md:text-5xl font-bold text-purple-600 dark:text-purple-400">${stats.totalHours.toFixed(0)}<span class="text-lg">h</span></p>
-              </div>
-              <p class="text-xs text-gray-400 text-center mt-2">total hours</p>
+              <p class="text-3xl md:text-4xl font-bold text-purple-600 dark:text-purple-400">${stats.totalHours.toFixed(0)}<span class="text-base">h</span></p>
+              <p class="text-xs text-gray-400 mt-2">total hours</p>
             </div>
-            <div class="bg-white dark:bg-gray-800 rounded-2xl p-4 md:p-6 shadow-sm border border-gray-100 dark:border-gray-700">
+            <div class="bg-white dark:bg-gray-800 rounded-2xl p-4 md:p-6 shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col items-center justify-center">
               <p class="text-xs md:text-sm text-gray-500 dark:text-gray-400 mb-2">Streak</p>
-              <div class="flex items-center justify-center" style="height:100px;">
-                <p class="text-4xl md:text-5xl font-bold text-orange-500">${stats.streak}<span class="text-lg">🔥</span></p>
-              </div>
-              <p class="text-xs text-gray-400 text-center mt-2">days in a row</p>
+              <p class="text-3xl md:text-4xl font-bold text-orange-500">${stats.streak}<span class="text-base">🔥</span></p>
+              <p class="text-xs text-gray-400 mt-2">days in a row</p>
             </div>
           </div>
 
-          <!-- Today's Progress -->
           <div class="bg-white dark:bg-gray-800 rounded-2xl p-4 md:p-6 shadow-sm border border-gray-100 dark:border-gray-700 mb-6">
             <h3 class="text-base md:text-lg font-semibold text-gray-900 dark:text-white mb-4">Today's Progress</h3>
             <div class="grid grid-cols-2 gap-4">
@@ -385,19 +358,15 @@
             </div>
           </div>
 
-          <!-- Heatmap on Dashboard -->
           <div class="bg-white dark:bg-gray-800 rounded-2xl p-4 md:p-6 shadow-sm border border-gray-100 dark:border-gray-700 mb-6">
             <div class="flex items-center justify-between mb-4">
               <h3 class="text-base md:text-lg font-semibold text-gray-900 dark:text-white">Study Activity</h3>
-              <p class="text-xs text-gray-500 dark:text-gray-400" id="heatmap-total-dash">0 questions this year</p>
+              <p class="text-xs text-gray-500 dark:text-gray-400">${heatmap.total.toLocaleString()} questions this year</p>
             </div>
-            <div class="overflow-x-auto -mx-2 px-2">
-              <div id="heatmap-grid-dash" class="inline-block min-w-full"></div>
-            </div>
-            <div class="flex items-center gap-2 mt-3 text-xs text-gray-500"><span>Less</span><div class="flex gap-1"><div class="w-3 h-3 rounded-sm bg-gray-200 dark:bg-gray-700"></div><div class="w-3 h-3 rounded-sm bg-green-200 dark:bg-green-900"></div><div class="w-3 h-3 rounded-sm bg-green-400 dark:bg-green-700"></div><div class="w-3 h-3 rounded-sm bg-green-600 dark:bg-green-500"></div></div><span>More</span></div>
+            <div class="heatmap-wrapper">${heatmap.html}</div>
+            <div class="flex items-center gap-2 mt-3 text-xs text-gray-500"><span>Less</span><div class="flex gap-1"><div class="w-3 h-3 rounded-sm bg-gray-200 dark:bg-gray-700"></div><div class="w-3 h-3 rounded-sm bg-green-300 dark:bg-green-800"></div><div class="w-3 h-3 rounded-sm bg-green-500"></div><div class="w-3 h-3 rounded-sm bg-green-600 dark:bg-green-400"></div></div><span>More</span></div>
           </div>
 
-          <!-- QBank Progress -->
           <div class="bg-white dark:bg-gray-800 rounded-2xl p-4 md:p-6 shadow-sm border border-gray-100 dark:border-gray-700 mb-6">
             <h3 class="text-base md:text-lg font-semibold text-gray-900 dark:text-white mb-4">Question Banks</h3>
             <div class="space-y-3">
@@ -405,14 +374,13 @@
             </div>
           </div>
 
-          <!-- Charts -->
           <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div class="bg-white dark:bg-gray-800 rounded-2xl p-4 md:p-6 shadow-sm border border-gray-100 dark:border-gray-700"><h3 class="text-base font-semibold text-gray-900 dark:text-white mb-4">Score Trend</h3><canvas id="scoreChart" height="200"></canvas></div>
             <div class="bg-white dark:bg-gray-800 rounded-2xl p-4 md:p-6 shadow-sm border border-gray-100 dark:border-gray-700"><h3 class="text-base font-semibold text-gray-900 dark:text-white mb-4">Daily Questions</h3><canvas id="dailyChart" height="200"></canvas></div>
           </div>
         </div>
 
-        <div id="tab-blocks" class="tab-content">
+        <div id="tab-blocks" class="tab-content ${currentTab === 'blocks' ? 'active' : ''}">
           <div class="mb-4"><h2 class="text-xl md:text-2xl font-bold text-gray-900 dark:text-white">Block Tracker</h2></div>
           <div class="flex gap-2 overflow-x-auto pb-3 mb-4 -mx-4 px-4">
             <button onclick="setFilter('all')" class="px-3 py-1.5 rounded-lg text-sm font-medium whitespace-nowrap ${currentFilter === 'all' ? 'bg-gray-700 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300'}">All</button>
@@ -421,7 +389,7 @@
           <div class="space-y-2" id="blocks-list"></div>
         </div>
 
-        <div id="tab-calendar" class="tab-content">
+        <div id="tab-calendar" class="tab-content ${currentTab === 'calendar' ? 'active' : ''}">
           <div class="mb-4"><h2 class="text-xl md:text-2xl font-bold text-gray-900 dark:text-white">Calendar</h2></div>
           <div class="bg-white dark:bg-gray-800 rounded-2xl p-4 md:p-6 shadow-sm border border-gray-100 dark:border-gray-700">
             <div class="flex items-center justify-between mb-4">
@@ -434,15 +402,7 @@
           </div>
         </div>
 
-        <div id="tab-heatmap" class="tab-content">
-          <div class="mb-4"><h2 class="text-xl md:text-2xl font-bold text-gray-900 dark:text-white">Study Heatmap</h2><p class="text-sm text-gray-500 dark:text-gray-400" id="heatmap-total">0 questions this year</p></div>
-          <div class="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-gray-700 overflow-x-auto">
-            <div id="heatmap-grid" class="inline-block"></div>
-            <div class="flex items-center gap-2 mt-3 text-xs text-gray-500"><span>Less</span><div class="flex gap-1"><div class="w-3 h-3 rounded-sm bg-gray-200 dark:bg-gray-700"></div><div class="w-3 h-3 rounded-sm bg-green-200 dark:bg-green-900"></div><div class="w-3 h-3 rounded-sm bg-green-400 dark:bg-green-700"></div><div class="w-3 h-3 rounded-sm bg-green-600 dark:bg-green-500"></div></div><span>More</span></div>
-          </div>
-        </div>
-
-        <div id="tab-settings" class="tab-content">
+        <div id="tab-settings" class="tab-content ${currentTab === 'settings' ? 'active' : ''}">
           <div class="mb-6"><h2 class="text-xl md:text-2xl font-bold text-gray-900 dark:text-white">Settings</h2></div>
           <div class="space-y-4">
             <div class="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm border border-gray-100 dark:border-gray-700">
@@ -454,13 +414,13 @@
             </div>
             <div class="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm border border-gray-100 dark:border-gray-700">
               <h3 class="font-semibold text-gray-900 dark:text-white mb-3">Cloud Sync</h3>
-              <p class="text-sm text-gray-500 dark:text-gray-400 mb-3">${apiKey ? 'Connected' : 'Not connected'}</p>
-              <button onclick="showModal('setup-modal')" class="w-full py-2 px-4 bg-blue-600 text-white rounded-lg text-sm font-medium">${apiKey ? 'Reconfigure' : 'Setup Sync'}</button>
+              <p class="text-sm text-gray-500 dark:text-gray-400 mb-3">${apiKey ? '✓ Connected' : 'Not connected'}</p>
+              <button onclick="showModal('setup-modal')" class="w-full py-2 px-4 bg-blue-600 text-white rounded-lg text-sm font-medium">${apiKey ? 'Change Key' : 'Enter Key'}</button>
             </div>
             <div class="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm border border-gray-100 dark:border-gray-700">
               <h3 class="font-semibold text-gray-900 dark:text-white mb-3">Backup</h3>
               <div class="flex gap-3">
-                <button onclick="exportData()" class="flex-1 py-2 px-4 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg text-sm font-medium">Export</button>
+                <button onclick="exportData()" class="flex-1 py-2 px-4 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg text-sm font-medium">Export JSON</button>
                 <label class="flex-1 py-2 px-4 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg text-sm font-medium text-center cursor-pointer">Import<input type="file" accept=".json" onchange="importData(event)" class="hidden"></label>
               </div>
             </div>
@@ -470,76 +430,33 @@
 
       document.getElementById('main-content').innerHTML = content;
       document.getElementById('mobile-content').innerHTML = content;
-
-      setTimeout(() => { renderDonutCharts(); updateCharts(); }, 100);
+      setTimeout(() => { renderDonutCharts(); updateCharts(); renderBlocksList(); renderCalendar(); }, 50);
     }
 
     function renderDonutCharts() {
       const stats = getStats();
-      const bgColor = darkMode ? '#374151' : '#e5e7eb';
-
-      // Destroy existing
+      const bg = darkMode ? '#374151' : '#e5e7eb';
       if (qsDonut) qsDonut.destroy();
       if (scoreDonut) scoreDonut.destroy();
-
-      // Questions Donut
       const qsCtx = document.getElementById('qsDonutChart');
-      if (qsCtx) {
-        qsDonut = new Chart(qsCtx, {
-          type: 'doughnut',
-          data: {
-            datasets: [{
-              data: [stats.totalQs, Math.max(0, TOTAL_QS - stats.totalQs)],
-              backgroundColor: ['#3B82F6', bgColor],
-              borderWidth: 0
-            }]
-          },
-          options: {
-            cutout: '75%',
-            responsive: true,
-            maintainAspectRatio: true,
-            plugins: { legend: { display: false }, tooltip: { enabled: false } }
-          }
-        });
-      }
-
-      // Score Donut
       const scoreCtx = document.getElementById('scoreDonutChart');
-      if (scoreCtx) {
-        const scoreColor = stats.avgScore >= 70 ? '#10B981' : stats.avgScore >= 60 ? '#F59E0B' : '#EF4444';
-        scoreDonut = new Chart(scoreCtx, {
-          type: 'doughnut',
-          data: {
-            datasets: [{
-              data: [stats.avgScore, Math.max(0, 100 - stats.avgScore)],
-              backgroundColor: [scoreColor, bgColor],
-              borderWidth: 0
-            }]
-          },
-          options: {
-            cutout: '75%',
-            responsive: true,
-            maintainAspectRatio: true,
-            plugins: { legend: { display: false }, tooltip: { enabled: false } }
-          }
-        });
-      }
+      if (qsCtx) qsDonut = new Chart(qsCtx, { type: 'doughnut', data: { datasets: [{ data: [stats.totalQs, Math.max(0, TOTAL_QS - stats.totalQs)], backgroundColor: ['#3B82F6', bg], borderWidth: 0 }] }, options: { cutout: '75%', responsive: true, plugins: { legend: { display: false }, tooltip: { enabled: false } } } });
+      if (scoreCtx) { const c = stats.avgScore >= 70 ? '#10B981' : stats.avgScore >= 60 ? '#F59E0B' : '#EF4444'; scoreDonut = new Chart(scoreCtx, { type: 'doughnut', data: { datasets: [{ data: [stats.avgScore, Math.max(0, 100 - stats.avgScore)], backgroundColor: [c, bg], borderWidth: 0 }] }, options: { cutout: '75%', responsive: true, plugins: { legend: { display: false }, tooltip: { enabled: false } } } }); }
     }
 
     function renderBlocksList() {
       const allBlocks = getAllBlocks();
       const filtered = currentFilter === 'all' ? allBlocks : allBlocks.filter(b => b.qbankId === currentFilter);
-      const container = document.getElementById('blocks-list');
-      if (!container) return;
-      container.innerHTML = filtered.map(b => {
-        const score = b.completed ? ((b.correct / (b.total || 40)) * 100).toFixed(0) : null;
-        const scoreClass = score >= 80 ? 'score-high' : score >= 60 ? 'score-mid' : 'score-low';
-        return `<div class="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm border border-gray-100 dark:border-gray-700 flex items-center gap-3 cursor-pointer active:bg-gray-50 dark:active:bg-gray-700" onclick="openBlockModal('${b.id}')"><div class="w-10 h-10 rounded-lg flex items-center justify-center text-white text-sm font-bold" style="background:${b.color}">${b.number}</div><div class="flex-1 min-w-0"><div class="text-sm font-medium text-gray-900 dark:text-white">${b.qbankName} #${b.number}</div><div class="text-xs text-gray-500 dark:text-gray-400">${b.date ? new Date(b.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'Not completed'}</div></div>${score !== null ? `<div class="px-3 py-1 rounded-full text-xs font-semibold ${scoreClass}">${score}%</div>` : '<div class="text-xs text-gray-400">—</div>'}</div>`;
-      }).join('');
+      document.querySelectorAll('#blocks-list').forEach(container => {
+        container.innerHTML = filtered.map(b => {
+          const score = b.completed ? ((b.correct / (b.total || 40)) * 100).toFixed(0) : null;
+          const scoreClass = score >= 80 ? 'score-high' : score >= 60 ? 'score-mid' : 'score-low';
+          return `<div class="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm border border-gray-100 dark:border-gray-700 flex items-center gap-3 cursor-pointer active:scale-[0.99] transition-transform" onclick="openBlockModal('${b.id}')"><div class="w-10 h-10 rounded-lg flex items-center justify-center text-white text-sm font-bold flex-shrink-0" style="background:${b.color}">${b.number}</div><div class="flex-1 min-w-0"><div class="text-sm font-medium text-gray-900 dark:text-white">${b.qbankName} #${b.number}</div><div class="text-xs text-gray-500 dark:text-gray-400">${b.date ? new Date(b.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'Not completed'}</div></div>${score !== null ? `<div class="px-3 py-1 rounded-full text-xs font-semibold ${scoreClass}">${score}%</div>` : '<div class="text-xs text-gray-400">—</div>'}</div>`;
+        }).join('');
+      });
     }
 
-    function setFilter(f) { currentFilter = f; renderContent(); setTimeout(renderBlocksList, 50); }
-
+    function setFilter(f) { currentFilter = f; renderContent(); }
     function openBlockModal(id) {
       const b = getAllBlocks().find(x => x.id === id);
       currentBlockId = id;
@@ -551,14 +468,11 @@
       document.getElementById('modal-notes').value = b.notes || '';
       showModal('block-modal');
     }
-
     function saveBlockModal() {
       const data = { id: currentBlockId, date: document.getElementById('modal-date').value, correct: parseInt(document.getElementById('modal-correct').value) || 0, total: parseInt(document.getElementById('modal-total').value) || 40, hours: parseFloat(document.getElementById('modal-hours').value) || 0, notes: document.getElementById('modal-notes').value, completed: true };
       const idx = blocks.findIndex(b => b.id === currentBlockId);
       if (idx >= 0) blocks[idx] = data; else blocks.push(data);
-      saveData();
-      hideModal('block-modal');
-      refreshAll();
+      saveData(); hideModal('block-modal'); refreshAll();
     }
 
     function renderCalendar() {
@@ -572,75 +486,31 @@
         const key = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`, data = dateMap[key], isToday = today.getDate() === d && today.getMonth() === month && today.getFullYear() === year;
         html += `<div class="aspect-square rounded-lg flex flex-col items-center justify-center text-xs ${data ? 'bg-blue-100 dark:bg-blue-900/50' : 'bg-gray-50 dark:bg-gray-800'} ${isToday ? 'ring-2 ring-blue-500' : ''}"><span class="${isToday ? 'text-blue-600 font-bold' : 'text-gray-700 dark:text-gray-300'}">${d}</span>${data ? `<span class="text-blue-600 dark:text-blue-400 text-[10px]">${data.qs}</span>` : ''}</div>`;
       }
-      const calGrid = document.getElementById('cal-grid'), calMonth = document.getElementById('cal-month');
-      if (calGrid) calGrid.innerHTML = html;
-      if (calMonth) calMonth.textContent = currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+      document.querySelectorAll('#cal-grid').forEach(el => el.innerHTML = html);
+      document.querySelectorAll('#cal-month').forEach(el => el.textContent = currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }));
     }
 
     function prevMonth() { currentDate = new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1); renderCalendar(); }
     function nextMonth() { currentDate = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1); renderCalendar(); }
 
-    function renderHeatmap() {
-      const containers = [
-        { grid: document.getElementById('heatmap-grid'), total: document.getElementById('heatmap-total') },
-        { grid: document.getElementById('heatmap-grid-dash'), total: document.getElementById('heatmap-total-dash') }
-      ];
-      const today = new Date(), oneYearAgo = new Date(today); oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
-      const dateMap = {};
-      blocks.filter(b => b.completed).forEach(b => { dateMap[b.date] = (dateMap[b.date] || 0) + (b.total || 40); });
-      const maxQs = Math.max(...Object.values(dateMap), 1);
-      let html = '<div class="flex gap-1">', week = [], total = 0;
-      for (let i = 0; i < oneYearAgo.getDay(); i++) week.push('<div class="heatmap-cell"></div>');
-      for (let d = new Date(oneYearAgo); d <= today; d.setDate(d.getDate() + 1)) {
-        const key = d.toISOString().split('T')[0], qs = dateMap[key] || 0;
-        total += qs;
-        const intensity = qs / maxQs;
-        let color = 'bg-gray-200 dark:bg-gray-700';
-        if (qs > 0) { if (intensity > 0.75) color = 'bg-green-600 dark:bg-green-400'; else if (intensity > 0.5) color = 'bg-green-500 dark:bg-green-500'; else if (intensity > 0.25) color = 'bg-green-400 dark:bg-green-600'; else color = 'bg-green-300 dark:bg-green-700'; }
-        week.push(`<div class="heatmap-cell ${color}" title="${key}: ${qs}"></div>`);
-        if (week.length === 7) { html += `<div class="flex flex-col gap-1">${week.join('')}</div>`; week = []; }
-      }
-      if (week.length) { while (week.length < 7) week.push('<div class="heatmap-cell"></div>'); html += `<div class="flex flex-col gap-1">${week.join('')}</div>`; }
-      html += '</div>';
-      containers.forEach(c => {
-        if (c.grid) c.grid.innerHTML = html;
-        if (c.total) c.total.textContent = `${total.toLocaleString()} questions this year`;
-      });
-    }
-
     function updateCharts() {
       const textColor = darkMode ? '#9ca3af' : '#6b7280', gridColor = darkMode ? '#374151' : '#e5e7eb';
       const completed = blocks.filter(b => b.completed).sort((a, b) => new Date(a.date) - new Date(b.date));
       const scoreData = completed.slice(-15).map(b => ((b.correct / (b.total || 40)) * 100).toFixed(0)), scoreLabels = completed.slice(-15).map((_, i) => i + 1);
-      const dailyMap = {};
-      completed.forEach(b => { dailyMap[b.date] = (dailyMap[b.date] || 0) + (b.total || 40); });
+      const dailyMap = {}; completed.forEach(b => { dailyMap[b.date] = (dailyMap[b.date] || 0) + (b.total || 40); });
       const daily = Object.entries(dailyMap).sort((a, b) => new Date(a[0]) - new Date(b[0])).slice(-10);
-      if (scoreChart) scoreChart.destroy();
-      if (dailyChart) dailyChart.destroy();
+      if (scoreChart) scoreChart.destroy(); if (dailyChart) dailyChart.destroy();
       const ctx1 = document.getElementById('scoreChart'), ctx2 = document.getElementById('dailyChart');
-      if (!ctx1 || !ctx2) return;
-      scoreChart = new Chart(ctx1, { type: 'line', data: { labels: scoreLabels, datasets: [{ data: scoreData, borderColor: '#3B82F6', backgroundColor: 'rgba(59,130,246,0.1)', fill: true, tension: 0.3 }] }, options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, max: 100, ticks: { color: textColor }, grid: { color: gridColor } }, x: { ticks: { color: textColor }, grid: { display: false } } } } });
-      dailyChart = new Chart(ctx2, { type: 'bar', data: { labels: daily.map(([d]) => new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })), datasets: [{ data: daily.map(([, v]) => v), backgroundColor: '#3B82F6', borderRadius: 4 }] }, options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { ticks: { color: textColor }, grid: { color: gridColor } }, x: { ticks: { color: textColor }, grid: { display: false } } } } });
+      if (ctx1) scoreChart = new Chart(ctx1, { type: 'line', data: { labels: scoreLabels, datasets: [{ data: scoreData, borderColor: '#3B82F6', backgroundColor: 'rgba(59,130,246,0.1)', fill: true, tension: 0.3 }] }, options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, max: 100, ticks: { color: textColor }, grid: { color: gridColor } }, x: { ticks: { color: textColor }, grid: { display: false } } } } });
+      if (ctx2) dailyChart = new Chart(ctx2, { type: 'bar', data: { labels: daily.map(([d]) => new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })), datasets: [{ data: daily.map(([, v]) => v), backgroundColor: '#3B82F6', borderRadius: 4 }] }, options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { ticks: { color: textColor }, grid: { color: gridColor } }, x: { ticks: { color: textColor }, grid: { display: false } } } } });
     }
 
     function updateSettings() { settings.dailyQs = parseInt(document.getElementById('set-daily-qs')?.value) || 80; settings.dailyHours = parseInt(document.getElementById('set-daily-hours')?.value) || 4; saveData(); }
-    function exportData() { const blob = new Blob([JSON.stringify({ blocks, settings, examDate, exported: new Date().toISOString() }, null, 2)], { type: 'application/json' }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `usmle-backup-${new Date().toISOString().split('T')[0]}.json`; a.click(); }
+    function exportData() { const blob = new Blob([JSON.stringify({ blocks, settings, examDate }, null, 2)], { type: 'application/json' }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `usmle-backup-${new Date().toISOString().split('T')[0]}.json`; a.click(); }
     function importData(e) { const f = e.target.files[0]; if (!f) return; const r = new FileReader(); r.onload = (ev) => { try { const d = JSON.parse(ev.target.result); if (d.blocks) blocks = d.blocks; if (d.settings) settings = d.settings; if (d.examDate) examDate = d.examDate; saveData(); location.reload(); } catch { alert('Invalid file'); } }; r.readAsText(f); }
 
-    function showTab(tab) {
-      document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
-      document.querySelectorAll(`#tab-${tab}`).forEach(t => t.classList.add('active'));
-      ['d', 'm'].forEach(suffix => {
-        document.querySelectorAll(`[id^="nav-"][id$="-${suffix}"]`).forEach(btn => { btn.classList.remove('bg-blue-600', 'text-white', 'text-blue-600', 'dark:text-blue-400'); btn.classList.add('text-gray-400', 'text-gray-600', 'dark:text-gray-300'); });
-        const activeBtn = document.getElementById(`nav-${tab}-${suffix}`);
-        if (activeBtn) { if (suffix === 'd') { activeBtn.classList.add('bg-blue-600', 'text-white'); activeBtn.classList.remove('text-gray-600', 'dark:text-gray-300'); } else { activeBtn.classList.add('text-blue-600', 'dark:text-blue-400'); activeBtn.classList.remove('text-gray-400'); } }
-      });
-      if (tab === 'blocks') setTimeout(renderBlocksList, 50);
-      if (tab === 'calendar') setTimeout(renderCalendar, 50);
-      if (tab === 'heatmap') setTimeout(renderHeatmap, 50);
-    }
-
-    function refreshAll() { renderContent(); updateCountdown(); setTimeout(() => { renderBlocksList(); renderCalendar(); renderHeatmap(); renderDonutCharts(); updateCharts(); }, 100); }
+    function showTab(tab) { currentTab = tab; renderNav(); renderContent(); }
+    function refreshAll() { renderNav(); renderContent(); updateCountdown(); }
 
     updateSyncStatus(apiKey ? 'synced' : 'local');
     if (apiKey && binId) createOrLoadBin();
