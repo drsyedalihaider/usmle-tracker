@@ -14,22 +14,22 @@
     body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
     .tab-content { display: none; }
     .tab-content.active { display: block; }
-    input[type="date"], input[type="number"], input[type="text"] {
+    input[type="date"], input[type="number"], input[type="text"], select {
       border: 1px solid #d1d5db; border-radius: 8px; padding: 10px 12px; font-size: 16px; outline: none; background: inherit; color: inherit; width: 100%;
     }
-    .dark input { border-color: #4b5563; background: #374151; color: #f3f4f6; }
-    input:focus { border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59,130,246,0.1); }
+    .dark input, .dark select { border-color: #4b5563; background: #374151; color: #f3f4f6; }
+    input:focus, select:focus { border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59,130,246,0.1); }
     .score-high { background: #dcfce7; color: #166534; }
     .score-mid { background: #fef9c3; color: #854d0e; }
     .score-low { background: #fee2e2; color: #991b1b; }
     .dark .score-high { background: #166534; color: #dcfce7; }
     .dark .score-mid { background: #854d0e; color: #fef9c3; }
     .dark .score-low { background: #991b1b; color: #fee2e2; }
-    .heatmap-wrapper { overflow-x: auto; }
-    .heatmap-grid { display: flex; gap: 3px; padding: 4px 0; }
-    .heatmap-week { display: flex; flex-direction: column; gap: 3px; }
-    .heatmap-cell { width: 12px; height: 12px; border-radius: 2px; flex-shrink: 0; }
-    @media (max-width: 768px) { .heatmap-cell { width: 10px; height: 10px; } }
+    .heatmap-wrapper { overflow-x: auto; width: 100%; }
+    .heatmap-grid { display: flex; gap: 4px; padding: 4px 0; justify-content: space-between; width: 100%; }
+    .heatmap-week { display: flex; flex-direction: column; gap: 4px; flex: 1; }
+    .heatmap-cell { width: 100%; aspect-ratio: 1; border-radius: 2px; min-width: 8px; max-width: 16px; }
+    @media (max-width: 768px) { .heatmap-cell { max-width: 12px; } }
     .donut-container { position: relative; }
     .donut-center { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; }
     .sync-indicator { animation: pulse 2s infinite; }
@@ -39,12 +39,12 @@
 </head>
 <body class="bg-white dark:bg-gray-900">
 
-  <!-- Login Screen - Just a blank page with input -->
+  <!-- Login Screen -->
   <div id="login-screen" class="min-h-screen flex items-center justify-center p-4">
     <input type="password" id="key-input" placeholder="type" class="w-64 text-center" onkeypress="if(event.key==='Enter')tryLogin()">
   </div>
 
-  <!-- Main App (hidden until logged in) -->
+  <!-- Main App -->
   <div id="app" class="hidden">
     <!-- Exam Date Modal -->
     <div id="exam-modal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 hidden">
@@ -55,6 +55,35 @@
           <button onclick="saveExamDate()" class="flex-1 px-4 py-3 bg-blue-600 text-white rounded-xl font-medium">Save</button>
           <button onclick="hideModal('exam-modal')" class="flex-1 px-4 py-3 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-xl font-medium">Cancel</button>
         </div>
+      </div>
+    </div>
+
+    <!-- Day Edit Modal -->
+    <div id="day-modal" class="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-50 hidden">
+      <div class="bg-white dark:bg-gray-800 rounded-t-3xl sm:rounded-2xl p-6 w-full sm:max-w-md shadow-xl max-h-[90vh] overflow-y-auto">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-lg font-semibold text-gray-900 dark:text-white" id="day-modal-title">Edit Day</h3>
+          <button onclick="hideModal('day-modal')" class="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg">
+            <svg class="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+          </button>
+        </div>
+        <div class="space-y-4">
+          <div class="grid grid-cols-2 gap-4">
+            <div class="bg-blue-50 dark:bg-blue-900/30 rounded-lg p-3">
+              <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1">Questions (from blocks)</label>
+              <p class="text-xl font-bold text-blue-600 dark:text-blue-400" id="day-questions-display">0</p>
+            </div>
+            <div class="bg-rose-50 dark:bg-rose-900/30 rounded-lg p-3">
+              <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1">🍅 Pomodoros</label>
+              <p class="text-xl font-bold" id="day-pomodoros-display">—</p>
+            </div>
+          </div>
+          <div>
+            <label class="block text-sm text-gray-600 dark:text-gray-400 mb-1">Notes</label>
+            <textarea id="day-notes" rows="3" placeholder="Study notes, topics covered..." class="w-full border border-gray-300 dark:border-gray-600 rounded-lg p-3 text-sm bg-inherit text-inherit resize-none"></textarea>
+          </div>
+        </div>
+        <button onclick="saveDayModal()" class="w-full mt-6 px-4 py-3 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700">Save</button>
       </div>
     </div>
 
@@ -82,7 +111,7 @@
 
     <!-- Desktop Layout -->
     <div class="hidden md:flex min-h-screen">
-      <div class="w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 p-6 flex flex-col fixed h-full">
+      <div class="w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 p-6 flex flex-col fixed h-full overflow-y-auto">
         <div class="mb-4 flex items-center justify-between">
           <div>
             <h1 class="text-xl font-bold text-gray-900 dark:text-white">USMLE Step 3</h1>
@@ -97,14 +126,17 @@
           <div class="w-2 h-2 rounded-full bg-green-500" id="sync-dot-d"></div>
           <span class="text-gray-600 dark:text-gray-400" id="sync-text-d">Synced</span>
         </div>
+
         <div class="mb-6 p-4 bg-gradient-to-br from-red-50 to-orange-50 dark:from-red-900/30 dark:to-orange-900/30 rounded-xl cursor-pointer" onclick="showModal('exam-modal')">
           <p class="text-xs font-semibold text-red-600 dark:text-red-400 uppercase">Exam Day</p>
           <p class="text-3xl font-bold text-gray-900 dark:text-white" id="countdown-d">--</p>
           <p class="text-sm text-gray-600 dark:text-gray-300">days remaining</p>
           <p class="text-xs text-gray-500 dark:text-gray-400 mt-1" id="exam-date-d">Tap to set</p>
         </div>
+
         <nav class="space-y-2 flex-1" id="desktop-nav"></nav>
-        <div class="pt-4 border-t border-gray-200 dark:border-gray-700">
+
+        <div class="pt-4 border-t border-gray-200 dark:border-gray-700 mb-4">
           <div class="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/30 dark:to-indigo-900/30 rounded-xl p-4">
             <p class="text-sm font-medium text-gray-700 dark:text-gray-300">Progress</p>
             <p class="text-2xl font-bold text-blue-600 dark:text-blue-400" id="sidebar-progress">0%</p>
@@ -112,6 +144,42 @@
               <div class="h-full bg-blue-600 rounded-full" id="sidebar-bar" style="width:0%"></div>
             </div>
             <p class="text-xs text-gray-500 dark:text-gray-400 mt-2" id="sidebar-blocks">0 / 164 blocks</p>
+          </div>
+        </div>
+
+        <!-- Pomodoro Timer & Stats -->
+        <div class="pt-4 border-t border-gray-200 dark:border-gray-700">
+          <div class="p-4 bg-gradient-to-br from-rose-50 to-red-50 dark:from-rose-900/30 dark:to-red-900/30 rounded-xl">
+            <div class="flex items-center justify-between mb-2">
+              <p class="text-xs font-semibold text-rose-600 dark:text-rose-400 uppercase">🍅 Pomodoro</p>
+              <span id="timer-status-d" class="text-xs text-gray-500 dark:text-gray-400"></span>
+            </div>
+            <p class="text-3xl font-bold text-gray-900 dark:text-white text-center mb-3" id="timer-display-d">25:00</p>
+
+            <!-- Timer controls -->
+            <div id="timer-controls-d">
+              <div class="flex gap-2 mb-2" id="timer-start-row-d">
+                <select id="timer-duration-d" class="flex-1 text-sm py-2" onchange="setTimerDuration(this.value)">
+                  <option value="25">25 min</option>
+                  <option value="30">30 min</option>
+                  <option value="45">45 min</option>
+                  <option value="50">50 min</option>
+                </select>
+                <button onclick="startTimer()" class="flex-1 py-2 bg-rose-500 text-white rounded-lg text-sm font-medium hover:bg-rose-600">Start</button>
+              </div>
+              <div class="hidden gap-2" id="timer-running-row-d">
+                <button onclick="pauseTimer()" id="pause-btn-d" class="flex-1 py-2 bg-yellow-500 text-white rounded-lg text-sm font-medium hover:bg-yellow-600">Pause</button>
+                <button onclick="stopTimer()" class="flex-1 py-2 bg-gray-500 text-white rounded-lg text-sm font-medium hover:bg-gray-600">Stop</button>
+              </div>
+            </div>
+
+            <!-- Pomodoro Stats -->
+            <div class="mt-3 pt-3 border-t border-rose-200 dark:border-rose-800 text-xs space-y-1">
+              <div class="flex justify-between"><span class="text-gray-500 dark:text-gray-400">Today</span><span class="font-medium text-gray-700 dark:text-gray-300" id="pomo-today-d">0h 0m</span></div>
+              <div class="flex justify-between"><span class="text-gray-500 dark:text-gray-400">This Week</span><span class="font-medium text-gray-700 dark:text-gray-300" id="pomo-week-d">0h 0m</span></div>
+              <div class="flex justify-between"><span class="text-gray-500 dark:text-gray-400">This Month</span><span class="font-medium text-gray-700 dark:text-gray-300" id="pomo-month-d">0h 0m</span></div>
+              <div class="flex justify-between"><span class="text-gray-500 dark:text-gray-400">All Time</span><span class="font-medium text-gray-700 dark:text-gray-300" id="pomo-all-d">0h 0m</span></div>
+            </div>
           </div>
         </div>
       </div>
@@ -147,18 +215,27 @@
   <script>
     const QBANKS = [
       { id: 'uworld', name: 'UWorld', blocks: 60, color: '#3B82F6' },
-      { id: 'theboss', name: 'TheBoss', blocks: 55, color: '#8B5CF6' },
+      { id: 'amboss', name: 'AMBOSS', blocks: 55, color: '#8B5CF6' },
       { id: 'nbme', name: 'NBME', blocks: 10, color: '#F59E0B' },
       { id: 'mehlman', name: 'Mehlman', blocks: 39, color: '#10B981' }
     ];
     const TOTAL_BLOCKS = 164, TOTAL_QS = 6518;
 
-    let blocks = [], settings = { dailyQs: 80, dailyHours: 4 }, examDate = '';
+    let blocks = [], settings = { dailyQs: 80, dailyHours: 4 }, examDate = '', pomodoros = [], dailyNotes = [];
     let apiKey = localStorage.getItem('usmle-api-key') || '';
     let binId = localStorage.getItem('usmle-bin-id') || '';
     let darkMode = localStorage.getItem('usmle-dark') === 'true';
-    let currentFilter = 'all', currentDate = new Date(), currentBlockId = null, currentTab = 'dashboard';
-    let scoreChart, dailyChart, qsDonut, scoreDonut;
+    let currentFilter = 'all', currentDate = new Date(), currentBlockId = null, currentTab = 'dashboard', currentDayKey = null;
+    let scoreChart, dailyChart, qsDonut, scoreDonut, qbankDonuts = [];
+
+    // Timer state
+    let timerInterval = null;
+    let timerSeconds = 25 * 60;
+    let timerDuration = 25;
+    let timerElapsed = 0; // Track elapsed time
+    let isBreak = false;
+    let isRunning = false;
+    let isPaused = false;
 
     if (darkMode) document.documentElement.classList.add('dark');
 
@@ -169,6 +246,207 @@
       loadFromCloud();
     }
 
+    // Audio context for timer ring
+    let audioCtx = null;
+    function playRing() {
+      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      for (let i = 0; i < 3; i++) {
+        setTimeout(() => {
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          osc.connect(gain); gain.connect(audioCtx.destination);
+          osc.frequency.value = i === 2 ? 1000 : 800;
+          osc.type = 'sine';
+          gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.5);
+          osc.start(audioCtx.currentTime);
+          osc.stop(audioCtx.currentTime + 0.5);
+        }, i * 600);
+      }
+    }
+
+    function setTimerDuration(mins) {
+      if (isRunning) return;
+      timerDuration = parseInt(mins);
+      timerSeconds = timerDuration * 60;
+      updateTimerDisplay();
+    }
+
+    function formatTime(seconds) {
+      const mins = Math.floor(seconds / 60);
+      const secs = seconds % 60;
+      return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    }
+
+    function formatDuration(minutes) {
+      const h = Math.floor(minutes / 60);
+      const m = minutes % 60;
+      return `${h}h ${m}m`;
+    }
+
+    function updateTimerDisplay() {
+      const display = formatTime(timerSeconds);
+      const statusText = isBreak ? '☕ Break' : (isRunning ? (isPaused ? '⏸️ Paused' : '🍅 Focus') : '');
+
+      ['d', 'm'].forEach(v => {
+        const el = document.getElementById(`timer-display-${v}`);
+        const statusEl = document.getElementById(`timer-status-${v}`);
+        if (el) el.textContent = display;
+        if (statusEl) statusEl.textContent = statusText;
+
+        // Toggle button visibility
+        const startRow = document.getElementById(`timer-start-row-${v}`);
+        const runningRow = document.getElementById(`timer-running-row-${v}`);
+        const pauseBtn = document.getElementById(`pause-btn-${v}`);
+
+        if (startRow && runningRow) {
+          if (isRunning) {
+            startRow.classList.add('hidden');
+            runningRow.classList.remove('hidden');
+            runningRow.classList.add('flex');
+          } else {
+            startRow.classList.remove('hidden');
+            runningRow.classList.add('hidden');
+            runningRow.classList.remove('flex');
+          }
+        }
+        if (pauseBtn) {
+          pauseBtn.textContent = isPaused ? 'Resume' : 'Pause';
+          pauseBtn.className = isPaused
+            ? 'flex-1 py-2 bg-green-500 text-white rounded-lg text-sm font-medium hover:bg-green-600'
+            : 'flex-1 py-2 bg-yellow-500 text-white rounded-lg text-sm font-medium hover:bg-yellow-600';
+        }
+      });
+    }
+
+    function startTimer() {
+      isRunning = true;
+      isPaused = false;
+      isBreak = false;
+      timerElapsed = 0;
+      timerInterval = setInterval(timerTick, 1000);
+      updateTimerDisplay();
+    }
+
+    function pauseTimer() {
+      if (isPaused) {
+        // Resume
+        isPaused = false;
+        timerInterval = setInterval(timerTick, 1000);
+      } else {
+        // Pause
+        isPaused = true;
+        clearInterval(timerInterval);
+      }
+      updateTimerDisplay();
+    }
+
+    function stopTimer() {
+      clearInterval(timerInterval);
+
+      // Check if we should count this session
+      if (!isBreak && timerElapsed >= 5 * 60) {
+        // Count partial pomodoro (elapsed time in minutes)
+        const elapsedMins = Math.floor(timerElapsed / 60);
+        addPomodoro(elapsedMins);
+      }
+
+      isRunning = false;
+      isPaused = false;
+      isBreak = false;
+      timerElapsed = 0;
+      timerSeconds = timerDuration * 60;
+      updateTimerDisplay();
+    }
+
+    function timerTick() {
+      timerSeconds--;
+      if (!isBreak) timerElapsed++;
+
+      updateTimerDisplay();
+
+      if (timerSeconds <= 0) {
+        playRing();
+        if (!isBreak) {
+          // Work session complete - add full pomodoro
+          addPomodoro(timerDuration);
+          // Start break
+          isBreak = true;
+          timerSeconds = 5 * 60;
+          updateTimerDisplay();
+        } else {
+          // Break complete - reset
+          clearInterval(timerInterval);
+          isRunning = false;
+          isPaused = false;
+          isBreak = false;
+          timerElapsed = 0;
+          timerSeconds = timerDuration * 60;
+          updateTimerDisplay();
+        }
+      }
+    }
+
+    function addPomodoro(minutes) {
+      const today = new Date().toISOString().split('T')[0];
+      pomodoros.push({ date: today, duration: minutes });
+      saveData();
+      updatePomodoroStats();
+      refreshAll();
+    }
+
+    function getPomodoroStats() {
+      const now = new Date();
+      const today = now.toISOString().split('T')[0];
+
+      // Get start of week (Sunday)
+      const weekStart = new Date(now);
+      weekStart.setDate(now.getDate() - now.getDay());
+      weekStart.setHours(0, 0, 0, 0);
+
+      // Get start of month
+      const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+
+      let todayMins = 0, weekMins = 0, monthMins = 0, allMins = 0;
+
+      pomodoros.forEach(p => {
+        const pDate = new Date(p.date);
+        allMins += p.duration;
+
+        if (p.date === today) todayMins += p.duration;
+        if (pDate >= weekStart) weekMins += p.duration;
+        if (pDate >= monthStart) monthMins += p.duration;
+      });
+
+      return { todayMins, weekMins, monthMins, allMins };
+    }
+
+    function getTodayPomodoros() {
+      const today = new Date().toISOString().split('T')[0];
+      return pomodoros.filter(p => p.date === today);
+    }
+
+    function getTodayPomodoroTime() {
+      const todayPomos = getTodayPomodoros();
+      const totalMins = todayPomos.reduce((sum, p) => sum + p.duration, 0);
+      return totalMins;
+    }
+
+    function updatePomodoroStats() {
+      const stats = getPomodoroStats();
+      ['d', 'm'].forEach(v => {
+        const todayEl = document.getElementById(`pomo-today-${v}`);
+        const weekEl = document.getElementById(`pomo-week-${v}`);
+        const monthEl = document.getElementById(`pomo-month-${v}`);
+        const allEl = document.getElementById(`pomo-all-${v}`);
+
+        if (todayEl) todayEl.textContent = formatDuration(stats.todayMins);
+        if (weekEl) weekEl.textContent = formatDuration(stats.weekMins);
+        if (monthEl) monthEl.textContent = formatDuration(stats.monthMins);
+        if (allEl) allEl.textContent = formatDuration(stats.allMins);
+      });
+    }
+
     async function tryLogin() {
       const key = document.getElementById('key-input').value.trim();
       if (!key) return;
@@ -176,10 +454,8 @@
       apiKey = key;
       localStorage.setItem('usmle-api-key', apiKey);
 
-      // Try to load existing bin or create new one
       updateSyncStatus('syncing');
       try {
-        // First check if there's an existing bin
         const listRes = await fetch('https://api.jsonbin.io/v3/c/uncategorized/bins', { headers: { 'X-Master-Key': apiKey } });
         if (listRes.ok) {
           const bins = await listRes.json();
@@ -193,11 +469,10 @@
         if (binId) {
           await loadFromCloud();
         } else {
-          // Create new bin
           const res = await fetch('https://api.jsonbin.io/v3/b', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'X-Master-Key': apiKey, 'X-Bin-Name': 'usmle-tracker' },
-            body: JSON.stringify({ blocks: [], settings, examDate: '' })
+            body: JSON.stringify({ blocks: [], settings, examDate: '', pomodoros: [], dailyNotes: [] })
           });
           if (res.ok) {
             binId = (await res.json()).metadata.id;
@@ -208,6 +483,7 @@
         document.getElementById('login-screen').classList.add('hidden');
         document.getElementById('app').classList.remove('hidden');
         updateSyncStatus('synced');
+        updatePomodoroStats();
         refreshAll();
       } catch (e) {
         document.getElementById('key-input').value = '';
@@ -227,9 +503,12 @@
             blocks = d.record.blocks || [];
             settings = d.record.settings || settings;
             examDate = d.record.examDate || '';
+            pomodoros = d.record.pomodoros || [];
+            dailyNotes = d.record.dailyNotes || [];
           }
         }
         updateSyncStatus('synced');
+        updatePomodoroStats();
         refreshAll();
       } catch { updateSyncStatus('error'); }
     }
@@ -241,7 +520,7 @@
         await fetch(`https://api.jsonbin.io/v3/b/${binId}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json', 'X-Master-Key': apiKey },
-          body: JSON.stringify({ blocks, settings, examDate, lastSync: new Date().toISOString() })
+          body: JSON.stringify({ blocks, settings, examDate, pomodoros, dailyNotes, lastSync: new Date().toISOString() })
         });
         updateSyncStatus('synced');
       } catch { updateSyncStatus('error'); }
@@ -280,6 +559,33 @@
       return list;
     }
 
+    function getWeakAreasList() {
+      const weakAreas = blocks.filter(b => b.completed && b.notes && b.notes.trim() !== '')
+        .sort((a, b) => new Date(b.date) - new Date(a.date)); // Most recent first
+
+      if (weakAreas.length === 0) {
+        return '<p class="text-sm text-gray-400 dark:text-gray-500 italic">No weak areas logged yet. Add notes when completing blocks to track areas for review.</p>';
+      }
+
+      return weakAreas.map(b => {
+        const qbank = QBANKS.find(q => b.id.startsWith(q.id));
+        const blockNum = b.id.split('-')[1];
+        const score = ((b.correct / (b.total || 40)) * 100).toFixed(0);
+        const scoreClass = score >= 80 ? 'text-green-600 dark:text-green-400' : score >= 60 ? 'text-yellow-600 dark:text-yellow-400' : 'text-red-600 dark:text-red-400';
+        return `<div class="flex items-start gap-3 p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50">
+          <div class="w-8 h-8 rounded-lg flex items-center justify-center text-white text-xs font-bold flex-shrink-0" style="background:${qbank?.color || '#666'}">${blockNum}</div>
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center gap-2">
+              <span class="text-xs font-medium text-gray-700 dark:text-gray-300">${qbank?.name || 'Block'} #${blockNum}</span>
+              <span class="text-xs ${scoreClass}">${score}%</span>
+              <span class="text-xs text-gray-400">${new Date(b.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
+            </div>
+            <p class="text-sm text-gray-600 dark:text-gray-400 mt-0.5">${b.notes}</p>
+          </div>
+        </div>`;
+      }).join('');
+    }
+
     function getStats() {
       const completed = blocks.filter(b => b.completed);
       const totalQs = completed.reduce((s, b) => s + (b.total || 40), 0);
@@ -293,7 +599,7 @@
       const todayBlocks = completed.filter(b => b.date === todayKey);
       const todayQs = todayBlocks.reduce((s, b) => s + (b.total || 40), 0);
       const todayHours = todayBlocks.reduce((s, b) => s + (b.hours || 0), 0);
-      const qbankStats = QBANKS.map(qb => { const qbB = completed.filter(b => b.id.startsWith(qb.id)); const c = qbB.reduce((s, b) => s + (b.correct || 0), 0), t = qbB.reduce((s, b) => s + (b.total || 40), 0); return { ...qb, completed: qbB.length, score: t > 0 ? (c / t * 100) : 0 }; });
+      const qbankStats = QBANKS.map(qb => { const qbB = completed.filter(b => b.id.startsWith(qb.id)); const c = qbB.reduce((s, b) => s + (b.correct || 0), 0), t = qbB.reduce((s, b) => s + (b.total || 40), 0); return { ...qb, completed: qbB.length, qsDone: t, qsTotal: qb.blocks * 40, score: t > 0 ? (c / t * 100) : 0 }; });
       return { completedBlocks: completed.length, totalQs, totalCorrect, totalHours, avgScore, streak, todayQs, todayHours, qbankStats };
     }
 
@@ -355,6 +661,10 @@
     function renderContent() {
       const stats = getStats();
       const heatmap = generateHeatmapHTML();
+      const todayPomos = getTodayPomodoros();
+      const todayPomoCount = todayPomos.length;
+      const todayPomoMins = getTodayPomodoroTime();
+      const todayPomoDisplay = '🍅'.repeat(Math.min(todayPomoCount, 12)) + (todayPomoCount > 12 ? `+${todayPomoCount - 12}` : '');
 
       document.getElementById('sidebar-progress').textContent = ((stats.completedBlocks / TOTAL_BLOCKS) * 100).toFixed(1) + '%';
       document.getElementById('sidebar-bar').style.width = ((stats.completedBlocks / TOTAL_BLOCKS) * 100) + '%';
@@ -363,11 +673,42 @@
       const content = `
         <div id="tab-dashboard" class="tab-content ${currentTab === 'dashboard' ? 'active' : ''}">
           <div class="mb-6"><h2 class="text-xl md:text-2xl font-bold text-gray-900 dark:text-white">Dashboard</h2></div>
+
+          <!-- Mobile Pomodoro Timer -->
+          <div class="md:hidden bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-gray-700 mb-6">
+            <div class="flex items-center justify-between mb-2">
+              <p class="text-sm font-semibold text-rose-600 dark:text-rose-400">🍅 Pomodoro</p>
+              <span id="timer-status-m" class="text-xs text-gray-500 dark:text-gray-400"></span>
+            </div>
+            <p class="text-4xl font-bold text-gray-900 dark:text-white text-center mb-3" id="timer-display-m">25:00</p>
+            <div id="timer-controls-m">
+              <div class="flex gap-2 mb-2" id="timer-start-row-m">
+                <select id="timer-duration-m" class="flex-1 text-sm py-2" onchange="setTimerDuration(this.value)">
+                  <option value="25">25 min</option>
+                  <option value="30">30 min</option>
+                  <option value="45">45 min</option>
+                  <option value="50">50 min</option>
+                </select>
+                <button onclick="startTimer()" class="flex-1 py-2 bg-rose-500 text-white rounded-lg text-sm font-medium hover:bg-rose-600">Start</button>
+              </div>
+              <div class="hidden gap-2" id="timer-running-row-m">
+                <button onclick="pauseTimer()" id="pause-btn-m" class="flex-1 py-2 bg-yellow-500 text-white rounded-lg text-sm font-medium hover:bg-yellow-600">Pause</button>
+                <button onclick="stopTimer()" class="flex-1 py-2 bg-gray-500 text-white rounded-lg text-sm font-medium hover:bg-gray-600">Stop</button>
+              </div>
+            </div>
+            <div class="mt-3 pt-3 border-t border-rose-200 dark:border-rose-800 text-xs grid grid-cols-2 gap-2">
+              <div class="flex justify-between"><span class="text-gray-500">Today</span><span class="font-medium" id="pomo-today-m">0h 0m</span></div>
+              <div class="flex justify-between"><span class="text-gray-500">Week</span><span class="font-medium" id="pomo-week-m">0h 0m</span></div>
+              <div class="flex justify-between"><span class="text-gray-500">Month</span><span class="font-medium" id="pomo-month-m">0h 0m</span></div>
+              <div class="flex justify-between"><span class="text-gray-500">All</span><span class="font-medium" id="pomo-all-m">0h 0m</span></div>
+            </div>
+          </div>
+
           <div class="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 mb-6">
             <div class="bg-white dark:bg-gray-800 rounded-2xl p-4 md:p-6 shadow-sm border border-gray-100 dark:border-gray-700">
               <p class="text-xs md:text-sm text-gray-500 dark:text-gray-400 mb-2">Questions Done</p>
-              <div class="donut-container mx-auto" style="width:90px;height:90px;"><canvas id="qsDonutChart"></canvas><div class="donut-center"><p class="text-lg font-bold text-gray-900 dark:text-white">${stats.totalQs}</p></div></div>
-              <p class="text-xs text-gray-400 text-center mt-2">of ${TOTAL_QS.toLocaleString()}</p>
+              <div class="donut-container mx-auto" style="width:90px;height:90px;"><canvas id="qsDonutChart"></canvas><div class="donut-center"><p class="text-lg font-bold text-gray-900 dark:text-white">${((stats.totalQs / TOTAL_QS) * 100).toFixed(0)}%</p></div></div>
+              <p class="text-xs text-gray-400 text-center mt-2">${stats.totalQs.toLocaleString()} / ${TOTAL_QS.toLocaleString()}</p>
             </div>
             <div class="bg-white dark:bg-gray-800 rounded-2xl p-4 md:p-6 shadow-sm border border-gray-100 dark:border-gray-700">
               <p class="text-xs md:text-sm text-gray-500 dark:text-gray-400 mb-2">Average Score</p>
@@ -385,19 +726,21 @@
               <p class="text-xs text-gray-400 mt-2">days in a row</p>
             </div>
           </div>
+
           <div class="bg-white dark:bg-gray-800 rounded-2xl p-4 md:p-6 shadow-sm border border-gray-100 dark:border-gray-700 mb-6">
             <h3 class="text-base md:text-lg font-semibold text-gray-900 dark:text-white mb-4">Today's Progress</h3>
-            <div class="grid grid-cols-2 gap-4">
+            <div class="grid grid-cols-2 gap-6">
               <div>
-                <div class="flex justify-between text-xs md:text-sm mb-1"><span class="text-gray-600 dark:text-gray-400">Questions</span><span class="font-medium text-gray-900 dark:text-white">${stats.todayQs} / ${settings.dailyQs}</span></div>
+                <div class="flex justify-between text-xs md:text-sm mb-2"><span class="text-gray-600 dark:text-gray-400">Questions</span><span class="font-medium text-gray-900 dark:text-white">${stats.todayQs} / ${settings.dailyQs}</span></div>
                 <div class="h-3 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden"><div class="h-full bg-blue-500 rounded-full" style="width:${Math.min(100, (stats.todayQs / settings.dailyQs) * 100)}%"></div></div>
               </div>
               <div>
-                <div class="flex justify-between text-xs md:text-sm mb-1"><span class="text-gray-600 dark:text-gray-400">Hours</span><span class="font-medium text-gray-900 dark:text-white">${stats.todayHours.toFixed(1)} / ${settings.dailyHours}</span></div>
-                <div class="h-3 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden"><div class="h-full bg-purple-500 rounded-full" style="width:${Math.min(100, (stats.todayHours / settings.dailyHours) * 100)}%"></div></div>
+                <div class="flex justify-between text-xs md:text-sm mb-2"><span class="text-gray-600 dark:text-gray-400">🍅 Pomodoros</span><span class="font-medium text-gray-900 dark:text-white">${formatDuration(todayPomoMins)}</span></div>
+                <div class="text-xl leading-relaxed">${todayPomoDisplay || '<span class="text-gray-300 dark:text-gray-600">—</span>'}</div>
               </div>
             </div>
           </div>
+
           <div class="bg-white dark:bg-gray-800 rounded-2xl p-4 md:p-6 shadow-sm border border-gray-100 dark:border-gray-700 mb-6">
             <div class="flex items-center justify-between mb-4">
               <h3 class="text-base md:text-lg font-semibold text-gray-900 dark:text-white">Study Activity</h3>
@@ -406,15 +749,36 @@
             <div class="heatmap-wrapper">${heatmap.html}</div>
             <div class="flex items-center gap-2 mt-3 text-xs text-gray-500"><span>Less</span><div class="flex gap-1"><div class="w-3 h-3 rounded-sm bg-gray-200 dark:bg-gray-700"></div><div class="w-3 h-3 rounded-sm bg-green-300 dark:bg-green-800"></div><div class="w-3 h-3 rounded-sm bg-green-500"></div><div class="w-3 h-3 rounded-sm bg-green-600 dark:bg-green-400"></div></div><span>More</span></div>
           </div>
+
           <div class="bg-white dark:bg-gray-800 rounded-2xl p-4 md:p-6 shadow-sm border border-gray-100 dark:border-gray-700 mb-6">
             <h3 class="text-base md:text-lg font-semibold text-gray-900 dark:text-white mb-4">Question Banks</h3>
-            <div class="space-y-3">
-              ${stats.qbankStats.map(qb => `<div class="flex items-center gap-3"><div class="w-16 md:w-20 text-xs md:text-sm font-medium" style="color:${qb.color}">${qb.name}</div><div class="flex-1 h-3 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden"><div class="h-full rounded-full" style="width:${(qb.completed / qb.blocks) * 100}%;background:${qb.color}"></div></div><div class="text-xs text-gray-600 dark:text-gray-400 w-12 text-right">${qb.completed}/${qb.blocks}</div><div class="text-xs text-gray-500 w-10 text-right">${qb.score.toFixed(0)}%</div></div>`).join('')}
+            <div class="space-y-4">
+              ${stats.qbankStats.map((qb, i) => {
+                const pctDone = ((qb.qsDone / qb.qsTotal) * 100).toFixed(0);
+                return `<div class="flex items-center gap-3">
+                  <div class="w-16 md:w-20 text-xs md:text-sm font-medium" style="color:${qb.color}">${qb.name}</div>
+                  <div class="flex-1">
+                    <div class="h-3 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden"><div class="h-full rounded-full" style="width:${pctDone}%;background:${qb.color}"></div></div>
+                    <div class="text-[10px] text-gray-500 mt-1">${qb.qsDone}/${qb.qsTotal} Qs (${pctDone}%)</div>
+                  </div>
+                  <div class="flex items-center gap-2">
+                    <div class="relative" style="width:36px;height:36px;"><canvas id="qbankDonut${i}"></canvas><div class="absolute inset-0 flex items-center justify-center text-[9px] font-bold" style="color:${qb.score >= 70 ? '#10B981' : qb.score >= 60 ? '#F59E0B' : '#EF4444'}">${qb.score.toFixed(0)}%</div></div>
+                  </div>
+                </div>`;
+              }).join('')}
             </div>
           </div>
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
             <div class="bg-white dark:bg-gray-800 rounded-2xl p-4 md:p-6 shadow-sm border border-gray-100 dark:border-gray-700"><h3 class="text-base font-semibold text-gray-900 dark:text-white mb-4">Score Trend</h3><canvas id="scoreChart" height="200"></canvas></div>
             <div class="bg-white dark:bg-gray-800 rounded-2xl p-4 md:p-6 shadow-sm border border-gray-100 dark:border-gray-700"><h3 class="text-base font-semibold text-gray-900 dark:text-white mb-4">Daily Questions</h3><canvas id="dailyChart" height="200"></canvas></div>
+          </div>
+
+          <div class="bg-white dark:bg-gray-800 rounded-2xl p-4 md:p-6 shadow-sm border border-gray-100 dark:border-gray-700">
+            <h3 class="text-base md:text-lg font-semibold text-gray-900 dark:text-white mb-4">⚠️ Weak Areas</h3>
+            <div class="space-y-2 max-h-64 overflow-y-auto" id="weak-areas-list">
+              ${getWeakAreasList()}
+            </div>
           </div>
         </div>
 
@@ -466,7 +830,14 @@
 
       document.getElementById('main-content').innerHTML = content;
       document.getElementById('mobile-content').innerHTML = content;
-      setTimeout(() => { renderDonutCharts(); updateCharts(); renderBlocksList(); renderCalendar(); }, 50);
+      setTimeout(() => {
+        renderDonutCharts();
+        updateCharts();
+        renderBlocksList();
+        renderCalendar();
+        updateTimerDisplay();
+        updatePomodoroStats();
+      }, 50);
     }
 
     function renderDonutCharts() {
@@ -478,6 +849,22 @@
       const scoreCtx = document.getElementById('scoreDonutChart');
       if (qsCtx) qsDonut = new Chart(qsCtx, { type: 'doughnut', data: { datasets: [{ data: [stats.totalQs, Math.max(0, TOTAL_QS - stats.totalQs)], backgroundColor: ['#3B82F6', bg], borderWidth: 0 }] }, options: { cutout: '75%', responsive: true, plugins: { legend: { display: false }, tooltip: { enabled: false } } } });
       if (scoreCtx) { const c = stats.avgScore >= 70 ? '#10B981' : stats.avgScore >= 60 ? '#F59E0B' : '#EF4444'; scoreDonut = new Chart(scoreCtx, { type: 'doughnut', data: { datasets: [{ data: [stats.avgScore, Math.max(0, 100 - stats.avgScore)], backgroundColor: [c, bg], borderWidth: 0 }] }, options: { cutout: '75%', responsive: true, plugins: { legend: { display: false }, tooltip: { enabled: false } } } }); }
+
+      // Render qbank mini donuts
+      qbankDonuts.forEach(d => d.destroy());
+      qbankDonuts = [];
+      stats.qbankStats.forEach((qb, i) => {
+        const ctx = document.getElementById(`qbankDonut${i}`);
+        if (ctx) {
+          const c = qb.score >= 70 ? '#10B981' : qb.score >= 60 ? '#F59E0B' : '#EF4444';
+          const chart = new Chart(ctx, {
+            type: 'doughnut',
+            data: { datasets: [{ data: [qb.score, Math.max(0, 100 - qb.score)], backgroundColor: [c, bg], borderWidth: 0 }] },
+            options: { cutout: '70%', responsive: true, plugins: { legend: { display: false }, tooltip: { enabled: false } } }
+          });
+          qbankDonuts.push(chart);
+        }
+      });
     }
 
     function renderBlocksList() {
@@ -511,16 +898,86 @@
       saveData(); hideModal('block-modal'); refreshAll();
     }
 
+    function openDayModal(dateKey) {
+      currentDayKey = dateKey;
+      const dayData = dailyNotes.find(d => d.date === dateKey) || {};
+
+      // Calculate questions from blocks
+      const dayBlocks = blocks.filter(b => b.completed && b.date === dateKey);
+      const dayQs = dayBlocks.reduce((sum, b) => sum + (b.total || 40), 0);
+
+      // Calculate pomodoros
+      const dayPomos = pomodoros.filter(p => p.date === dateKey);
+      const pomoCount = dayPomos.length;
+      const pomoDisplay = pomoCount > 0 ? '🍅'.repeat(Math.min(pomoCount, 10)) + (pomoCount > 10 ? `+${pomoCount - 10}` : '') : '—';
+
+      document.getElementById('day-modal-title').textContent = new Date(dateKey).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+      document.getElementById('day-questions-display').textContent = dayQs > 0 ? dayQs : '0';
+      document.getElementById('day-pomodoros-display').textContent = pomoDisplay;
+      document.getElementById('day-notes').value = dayData.notes || '';
+      showModal('day-modal');
+    }
+
+    function saveDayModal() {
+      const notes = document.getElementById('day-notes').value.trim();
+
+      const idx = dailyNotes.findIndex(d => d.date === currentDayKey);
+      const data = { date: currentDayKey, notes };
+
+      if (notes === '') {
+        // Remove entry if empty
+        if (idx >= 0) dailyNotes.splice(idx, 1);
+      } else {
+        if (idx >= 0) dailyNotes[idx] = data;
+        else dailyNotes.push(data);
+      }
+
+      saveData();
+      hideModal('day-modal');
+      refreshAll();
+    }
+
     function renderCalendar() {
       const year = currentDate.getFullYear(), month = currentDate.getMonth();
       const firstDay = new Date(year, month, 1).getDay(), daysInMonth = new Date(year, month + 1, 0).getDate(), today = new Date();
-      const dateMap = {};
-      blocks.filter(b => b.completed).forEach(b => { if (!dateMap[b.date]) dateMap[b.date] = { qs: 0, correct: 0 }; dateMap[b.date].qs += b.total || 40; dateMap[b.date].correct += b.correct || 0; });
+
+      // Build date map for questions from blocks
+      const qsMap = {};
+      blocks.filter(b => b.completed).forEach(b => { qsMap[b.date] = (qsMap[b.date] || 0) + (b.total || 40); });
+
+      // Build date map for pomodoros
+      const pomoMap = {};
+      pomodoros.forEach(p => { pomoMap[p.date] = (pomoMap[p.date] || 0) + 1; });
+
+      // Build notes map
+      const notesMap = {};
+      dailyNotes.forEach(d => { notesMap[d.date] = d; });
+
       let html = '';
       for (let i = 0; i < firstDay; i++) html += '<div class="aspect-square"></div>';
       for (let d = 1; d <= daysInMonth; d++) {
-        const key = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`, data = dateMap[key], isToday = today.getDate() === d && today.getMonth() === month && today.getFullYear() === year;
-        html += `<div class="aspect-square rounded-lg flex flex-col items-center justify-center text-xs ${data ? 'bg-blue-100 dark:bg-blue-900/50' : 'bg-gray-50 dark:bg-gray-800'} ${isToday ? 'ring-2 ring-blue-500' : ''}"><span class="${isToday ? 'text-blue-600 font-bold' : 'text-gray-700 dark:text-gray-300'}">${d}</span>${data ? `<span class="text-blue-600 dark:text-blue-400 text-[10px]">${data.qs}</span>` : ''}</div>`;
+        const key = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+        const isToday = today.getDate() === d && today.getMonth() === month && today.getFullYear() === year;
+        const dayNote = notesMap[key] || {};
+        const dayQs = qsMap[key] || 0;
+        const pomoCount = pomoMap[key] || 0;
+        const hasData = dayQs > 0 || dayNote.notes || pomoCount > 0;
+
+        // Question display (auto from blocks)
+        const qDisplay = dayQs > 0 ? `Q:${dayQs}` : '';
+
+        // Pomodoro display
+        const pomoDisplay = pomoCount > 0 ? '🍅'.repeat(Math.min(pomoCount, 4)) + (pomoCount > 4 ? '+' : '') : '';
+
+        // Notes display (truncated)
+        const noteDisplay = dayNote.notes ? (dayNote.notes.length > 8 ? dayNote.notes.substring(0, 8) + '…' : dayNote.notes) : '';
+
+        html += `<div onclick="openDayModal('${key}')" class="aspect-square rounded-lg flex flex-col items-start justify-start text-xs p-1 cursor-pointer hover:ring-2 hover:ring-blue-300 transition-all ${hasData ? 'bg-blue-50 dark:bg-blue-900/30' : 'bg-gray-50 dark:bg-gray-800'} ${isToday ? 'ring-2 ring-blue-500' : ''}">
+          <span class="${isToday ? 'text-blue-600 font-bold' : 'text-gray-700 dark:text-gray-300'} text-[10px]">${d}</span>
+          ${qDisplay ? `<span class="text-blue-600 dark:text-blue-400 text-[9px] font-medium">${qDisplay}</span>` : ''}
+          ${pomoDisplay ? `<span class="text-[8px] leading-tight">${pomoDisplay}</span>` : ''}
+          ${noteDisplay ? `<span class="text-gray-500 dark:text-gray-400 text-[8px] truncate w-full">${noteDisplay}</span>` : ''}
+        </div>`;
       }
       document.querySelectorAll('#cal-grid').forEach(el => el.innerHTML = html);
       document.querySelectorAll('#cal-month').forEach(el => el.textContent = currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }));
@@ -542,8 +999,8 @@
     }
 
     function updateSettings() { settings.dailyQs = parseInt(document.getElementById('set-daily-qs')?.value) || 80; settings.dailyHours = parseInt(document.getElementById('set-daily-hours')?.value) || 4; saveData(); }
-    function exportData() { const blob = new Blob([JSON.stringify({ blocks, settings, examDate }, null, 2)], { type: 'application/json' }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `backup-${new Date().toISOString().split('T')[0]}.json`; a.click(); }
-    function importData(e) { const f = e.target.files[0]; if (!f) return; const r = new FileReader(); r.onload = (ev) => { try { const d = JSON.parse(ev.target.result); if (d.blocks) blocks = d.blocks; if (d.settings) settings = d.settings; if (d.examDate) examDate = d.examDate; saveData(); refreshAll(); } catch { alert('Invalid file'); } }; r.readAsText(f); }
+    function exportData() { const blob = new Blob([JSON.stringify({ blocks, settings, examDate, pomodoros, dailyNotes }, null, 2)], { type: 'application/json' }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `backup-${new Date().toISOString().split('T')[0]}.json`; a.click(); }
+    function importData(e) { const f = e.target.files[0]; if (!f) return; const r = new FileReader(); r.onload = (ev) => { try { const d = JSON.parse(ev.target.result); if (d.blocks) blocks = d.blocks; if (d.settings) settings = d.settings; if (d.examDate) examDate = d.examDate; if (d.pomodoros) pomodoros = d.pomodoros; if (d.dailyNotes) dailyNotes = d.dailyNotes; saveData(); refreshAll(); } catch { alert('Invalid file'); } }; r.readAsText(f); }
 
     function logout() {
       localStorage.removeItem('usmle-api-key');
