@@ -855,7 +855,10 @@
                 <button onclick="forceRefresh()" class="flex-1 py-2 px-4 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-lg text-sm font-medium">🔄 Force Refresh</button>
                 <button onclick="forceSave()" class="flex-1 py-2 px-4 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded-lg text-sm font-medium">💾 Force Save</button>
               </div>
-              <p class="text-xs text-gray-500 mt-2">Bin ID: <code class="bg-gray-100 dark:bg-gray-700 px-1 rounded">${binId ? binId.substring(0, 12) + '...' : 'none'}</code></p>
+              <div class="text-xs text-gray-500 mt-2 space-y-1">
+                <p>Bin ID: <code class="bg-gray-100 dark:bg-gray-700 px-1 rounded">${binId || 'none'}</code></p>
+                <p>Blocks: ${blocks.length} | Pomos: ${pomodoros.length} | Exam: ${examDate || 'not set'}</p>
+              </div>
             </div>
             <div class="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm border border-gray-100 dark:border-gray-700">
               <h3 class="font-semibold text-gray-900 dark:text-white mb-3">Backup</h3>
@@ -865,7 +868,12 @@
               </div>
             </div>
             <div class="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm border border-gray-100 dark:border-gray-700">
-              <button onclick="logout()" class="w-full py-2 px-4 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded-lg text-sm font-medium">Logout</button>
+              <h3 class="font-semibold text-gray-900 dark:text-white mb-3">Account</h3>
+              <div class="flex gap-3">
+                <button onclick="logout()" class="flex-1 py-2 px-4 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg text-sm font-medium">Logout</button>
+                <button onclick="resetAll()" class="flex-1 py-2 px-4 bg-red-500 text-white rounded-lg text-sm font-medium">Reset All</button>
+              </div>
+              <p class="text-xs text-gray-500 mt-2">Reset clears everything and creates a new cloud bin.</p>
             </div>
           </div>
         </div>
@@ -1061,6 +1069,20 @@
       localStorage.removeItem('usmle-api-key');
       localStorage.removeItem('usmle-bin-id');
       location.reload();
+    }
+
+    function resetAll() {
+      if (confirm('This will DELETE all local data and create a new cloud bin. Your current data will be LOST. Continue?')) {
+        localStorage.clear();
+        binId = '';
+        blocks = [];
+        settings = { dailyQs: 80, dailyHours: 4 };
+        examDate = '';
+        pomodoros = [];
+        dailyNotes = [];
+        alert('All data cleared. You will now need to re-enter your API key.');
+        location.reload();
+      }
     }
 
     function showTab(tab) { currentTab = tab; renderNav(); renderContent(); }
