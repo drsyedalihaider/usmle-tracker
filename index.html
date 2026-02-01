@@ -226,9 +226,15 @@
     ];
     const TOTAL_BLOCKS = 164, TOTAL_QS = 6518;
 
+    // Hardcoded credentials - simple and reliable
+    const VALID_USER = 'step3';
+    const VALID_PASS = 'sabisabi';
+    const API_KEY = '$2a$10$CNcF/q.zWbrO0adp6Pei3ON6Dg.PzuTlcFcKqDrCVquYUz9UsC9rm';
+    const BIN_ID = '697ea2b343b1c97be95c01c2';
+
     let blocks = [], settings = { dailyQs: 80, dailyHours: 4 }, examDate = '', pomodoros = [], dailyNotes = [];
     let apiKey = '';
-    let binId = localStorage.getItem('usmle-bin-id') || '';
+    let binId = '';
     const isLoggedIn = localStorage.getItem('usmle-logged-in') === 'true';
     let darkMode = localStorage.getItem('usmle-dark') === 'true';
     let currentFilter = 'all', currentDate = new Date(), currentBlockId = null, currentTab = 'dashboard', currentDayKey = null;
@@ -251,11 +257,12 @@
     }
 
     async function initApp() {
-      apiKey = '$2a$10$CNcF/q.zWbrO0adp6Pei3ON6Dg.PzuTlcFcKqDrCVquYUz9UsC9rm';
+      apiKey = API_KEY;
+      binId = BIN_ID;
       document.getElementById('login-screen').classList.add('hidden');
       document.getElementById('app').classList.remove('hidden');
-      refreshAll(); // Render immediately
-      await loadFromCloud(); // Then sync data
+      refreshAll();
+      await loadFromCloud();
     }
 
     // Audio context for timer ring
@@ -459,11 +466,6 @@
       });
     }
 
-    // Hardcoded credentials
-    const VALID_USER = 'step3';
-    const VALID_PASS = 'sabisabi';
-    const API_KEY = '$2a$10$CNcF/q.zWbrO0adp6Pei3ON6Dg.PzuTlcFcKqDrCVquYUz9UsC9rm';
-
     async function tryLogin() {
       const user = document.getElementById('user-input').value.trim();
       const pass = document.getElementById('pass-input').value.trim();
@@ -483,53 +485,16 @@
       statusEl.classList.remove('hidden', 'text-red-500');
       statusEl.classList.add('text-gray-500');
 
+      // Use hardcoded values - simple and reliable
       apiKey = API_KEY;
+      binId = BIN_ID;
       localStorage.setItem('usmle-logged-in', 'true');
+      localStorage.setItem('usmle-bin-id', binId);
 
-      try {
-        // Get all bins and find usmle-tracker
-        const listRes = await fetch('https://api.jsonbin.io/v3/c/uncategorized/bins', { headers: { 'X-Master-Key': apiKey } });
-
-        if (!listRes.ok) {
-          throw new Error('Connection failed');
-        }
-
-        const bins = await listRes.json();
-        console.log('All bins:', bins);
-
-        // Find the usmle-tracker bin (use newest one)
-        const trackerBins = bins.filter(b => b.snippetMeta && b.snippetMeta.name === 'usmle-tracker');
-
-        if (trackerBins.length > 0) {
-          trackerBins.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-          binId = trackerBins[0].id;
-          statusEl.textContent = 'Loading data...';
-        } else {
-          statusEl.textContent = 'Creating storage...';
-          const createRes = await fetch('https://api.jsonbin.io/v3/b', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'X-Master-Key': apiKey, 'X-Bin-Name': 'usmle-tracker' },
-            body: JSON.stringify({ blocks: [], settings, examDate: '', pomodoros: [], dailyNotes: [] })
-          });
-          if (!createRes.ok) throw new Error('Failed to create storage');
-          binId = (await createRes.json()).metadata.id;
-        }
-
-        localStorage.setItem('usmle-bin-id', binId);
-        document.getElementById('login-screen').classList.add('hidden');
-        document.getElementById('app').classList.remove('hidden');
-        refreshAll(); // Render immediately
-        await loadFromCloud(); // Then sync data
-
-      } catch (e) {
-        console.error('Login error:', e);
-        statusEl.textContent = e.message || 'Connection failed';
-        statusEl.classList.remove('text-gray-500');
-        statusEl.classList.add('text-red-500');
-        localStorage.removeItem('usmle-logged-in');
-        localStorage.removeItem('usmle-bin-id');
-        binId = '';
-      }
+      document.getElementById('login-screen').classList.add('hidden');
+      document.getElementById('app').classList.remove('hidden');
+      refreshAll();
+      await loadFromCloud();
     }
 
     async function loadFromCloud() {
