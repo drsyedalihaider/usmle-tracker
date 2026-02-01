@@ -531,7 +531,11 @@
     }
 
     async function loadFromCloud() {
-      if (!apiKey || !binId) return;
+      if (!apiKey || !binId) {
+        console.log('Missing apiKey or binId, calling refreshAll anyway');
+        refreshAll();
+        return;
+      }
       updateSyncStatus('syncing');
       try {
         const res = await fetch(`https://api.jsonbin.io/v3/b/${binId}/latest`, { headers: { 'X-Master-Key': apiKey } });
@@ -1106,7 +1110,16 @@
     }
 
     function showTab(tab) { currentTab = tab; renderNav(); renderContent(); }
-    function refreshAll() { renderNav(); renderContent(); updateCountdown(); }
+    function refreshAll() {
+      try {
+        renderNav();
+        renderContent();
+        updateCountdown();
+      } catch(e) {
+        console.error('Render error:', e);
+        alert('Error: ' + e.message);
+      }
+    }
   </script>
 </body>
 </html>
