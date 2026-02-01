@@ -254,7 +254,8 @@
       apiKey = '$2a$10$CNcF/q.zWbrO0adp6Pei3ON6Dg.PzuTlcFcKqDrCVquYUz9UsC9rm';
       document.getElementById('login-screen').classList.add('hidden');
       document.getElementById('app').classList.remove('hidden');
-      await loadFromCloud();
+      refreshAll(); // Render immediately
+      await loadFromCloud(); // Then sync data
     }
 
     // Audio context for timer ring
@@ -517,7 +518,8 @@
         localStorage.setItem('usmle-bin-id', binId);
         document.getElementById('login-screen').classList.add('hidden');
         document.getElementById('app').classList.remove('hidden');
-        await loadFromCloud();
+        refreshAll(); // Render immediately
+        await loadFromCloud(); // Then sync data
 
       } catch (e) {
         console.error('Login error:', e);
