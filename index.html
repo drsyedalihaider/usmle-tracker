@@ -42,11 +42,10 @@
   <!-- Login Screen -->
   <div id="login-screen" class="min-h-screen flex items-center justify-center p-4">
     <div class="flex flex-col gap-3 w-64">
-      <input type="password" id="key-input" placeholder="type" class="text-center" onkeypress="if(event.key==='Enter')tryLogin()">
-      <div class="flex gap-2">
-        <button onclick="tryLogin()" class="flex-1 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700">OK</button>
-        <button onclick="document.getElementById('key-input').value=''" class="flex-1 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg text-sm font-medium hover:bg-gray-300 dark:hover:bg-gray-600">Cancel</button>
-      </div>
+      <input type="text" id="user-input" placeholder="username" class="text-center" onkeypress="if(event.key==='Enter')document.getElementById('pass-input').focus()">
+      <input type="password" id="pass-input" placeholder="password" class="text-center" onkeypress="if(event.key==='Enter')tryLogin()">
+      <p id="login-status" class="text-xs text-center text-gray-500 hidden"></p>
+      <button onclick="tryLogin()" class="w-full py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700">Login</button>
     </div>
   </div>
 
@@ -228,8 +227,9 @@
     const TOTAL_BLOCKS = 164, TOTAL_QS = 6518;
 
     let blocks = [], settings = { dailyQs: 80, dailyHours: 4 }, examDate = '', pomodoros = [], dailyNotes = [];
-    let apiKey = localStorage.getItem('usmle-api-key') || '';
+    let apiKey = '';
     let binId = localStorage.getItem('usmle-bin-id') || '';
+    const isLoggedIn = localStorage.getItem('usmle-logged-in') === 'true';
     let darkMode = localStorage.getItem('usmle-dark') === 'true';
     let currentFilter = 'all', currentDate = new Date(), currentBlockId = null, currentTab = 'dashboard', currentDayKey = null;
     let scoreChart, dailyChart, qsDonut, scoreDonut, qbankDonuts = [];
@@ -246,11 +246,12 @@
     if (darkMode) document.documentElement.classList.add('dark');
 
     // Check if already logged in
-    if (apiKey && binId) {
+    if (isLoggedIn && binId) {
       initApp();
     }
 
     async function initApp() {
+      apiKey = '$2a$10$CNcF/q.zWbrO0adp6Pei3ON6Dg.PzuTlcFcKqDrCVquYUz9UsC9rm';
       document.getElementById('login-screen').classList.add('hidden');
       document.getElementById('app').classList.remove('hidden');
       await loadFromCloud();
@@ -457,56 +458,75 @@
       });
     }
 
+    // Hardcoded credentials
+    const VALID_USER = 'step3';
+    const VALID_PASS = 'sabisabi';
+    const API_KEY = '$2a$10$CNcF/q.zWbrO0adp6Pei3ON6Dg.PzuTlcFcKqDrCVquYUz9UsC9rm';
+
     async function tryLogin() {
-      const key = document.getElementById('key-input').value.trim();
-      if (!key) return;
+      const user = document.getElementById('user-input').value.trim();
+      const pass = document.getElementById('pass-input').value.trim();
+      const statusEl = document.getElementById('login-status');
 
-      apiKey = key;
-      localStorage.setItem('usmle-api-key', apiKey);
+      if (!user || !pass) return;
 
-      updateSyncStatus('syncing');
+      // Check credentials
+      if (user !== VALID_USER || pass !== VALID_PASS) {
+        statusEl.textContent = 'Invalid username or password';
+        statusEl.classList.remove('hidden', 'text-gray-500');
+        statusEl.classList.add('text-red-500');
+        return;
+      }
+
+      statusEl.textContent = 'Connecting...';
+      statusEl.classList.remove('hidden', 'text-red-500');
+      statusEl.classList.add('text-gray-500');
+
+      apiKey = API_KEY;
+      localStorage.setItem('usmle-logged-in', 'true');
+
       try {
-        // Try to find existing bin
+        // Get all bins and find usmle-tracker
         const listRes = await fetch('https://api.jsonbin.io/v3/c/uncategorized/bins', { headers: { 'X-Master-Key': apiKey } });
-        if (listRes.ok) {
-          const bins = await listRes.json();
-          console.log('Found bins:', bins);
-          const existing = bins.find(b => b.snippetMeta && b.snippetMeta.name === 'usmle-tracker');
-          if (existing) {
-            binId = existing.id;
-            localStorage.setItem('usmle-bin-id', binId);
-            console.log('Found existing bin:', binId);
-          }
-        } else {
-          console.log('Could not list bins, will create new one');
+
+        if (!listRes.ok) {
+          throw new Error('Connection failed');
         }
 
-        if (binId) {
-          document.getElementById('login-screen').classList.add('hidden');
-          document.getElementById('app').classList.remove('hidden');
-          await loadFromCloud();
+        const bins = await listRes.json();
+        console.log('All bins:', bins);
+
+        // Find the usmle-tracker bin (use newest one)
+        const trackerBins = bins.filter(b => b.snippetMeta && b.snippetMeta.name === 'usmle-tracker');
+
+        if (trackerBins.length > 0) {
+          trackerBins.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+          binId = trackerBins[0].id;
+          statusEl.textContent = 'Loading data...';
         } else {
-          const res = await fetch('https://api.jsonbin.io/v3/b', {
+          statusEl.textContent = 'Creating storage...';
+          const createRes = await fetch('https://api.jsonbin.io/v3/b', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'X-Master-Key': apiKey, 'X-Bin-Name': 'usmle-tracker' },
             body: JSON.stringify({ blocks: [], settings, examDate: '', pomodoros: [], dailyNotes: [] })
           });
-          if (res.ok) {
-            binId = (await res.json()).metadata.id;
-            localStorage.setItem('usmle-bin-id', binId);
-            document.getElementById('login-screen').classList.add('hidden');
-            document.getElementById('app').classList.remove('hidden');
-            updateSyncStatus('synced');
-            updatePomodoroStats();
-            refreshAll();
-          } else {
-            throw new Error('Failed to create bin');
-          }
+          if (!createRes.ok) throw new Error('Failed to create storage');
+          binId = (await createRes.json()).metadata.id;
         }
+
+        localStorage.setItem('usmle-bin-id', binId);
+        document.getElementById('login-screen').classList.add('hidden');
+        document.getElementById('app').classList.remove('hidden');
+        await loadFromCloud();
+
       } catch (e) {
-        document.getElementById('key-input').value = '';
-        document.getElementById('key-input').placeholder = 'invalid';
-        setTimeout(() => { document.getElementById('key-input').placeholder = 'type'; }, 2000);
+        console.error('Login error:', e);
+        statusEl.textContent = e.message || 'Connection failed';
+        statusEl.classList.remove('text-gray-500');
+        statusEl.classList.add('text-red-500');
+        localStorage.removeItem('usmle-logged-in');
+        localStorage.removeItem('usmle-bin-id');
+        binId = '';
       }
     }
 
@@ -1066,7 +1086,7 @@
     }
 
     function logout() {
-      localStorage.removeItem('usmle-api-key');
+      localStorage.removeItem('usmle-logged-in');
       localStorage.removeItem('usmle-bin-id');
       location.reload();
     }
@@ -1080,7 +1100,7 @@
         examDate = '';
         pomodoros = [];
         dailyNotes = [];
-        alert('All data cleared. You will now need to re-enter your API key.');
+        alert('All data cleared. Please login again.');
         location.reload();
       }
     }
