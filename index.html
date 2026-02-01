@@ -83,6 +83,11 @@
               <p class="text-xl font-bold" id="day-pomodoros-display">—</p>
             </div>
           </div>
+          <div id="day-pomodoro-list">
+            <label class="block text-sm text-gray-600 dark:text-gray-400 mb-2">🍅 Pomodoros</label>
+            <div id="day-pomodoro-items" class="flex flex-wrap gap-1 items-center"></div>
+            <p id="day-pomo-hint" class="text-[10px] text-gray-400 mt-1"></p>
+          </div>
           <div>
             <label class="block text-sm text-gray-600 dark:text-gray-400 mb-1">Notes</label>
             <textarea id="day-notes" rows="3" placeholder="Study notes, topics covered..." class="w-full border border-gray-300 dark:border-gray-600 rounded-lg p-3 text-sm bg-inherit text-inherit resize-none"></textarea>
@@ -114,30 +119,54 @@
       </div>
     </div>
 
-    <!-- Manual Pomodoro Modal -->
-    <div id="pomo-modal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 hidden">
-      <div class="bg-white dark:bg-gray-800 rounded-2xl p-6 w-full max-w-sm shadow-xl">
-        <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">🍅 Add Pomodoros</h3>
-        <div class="space-y-4">
-          <div>
-            <label class="block text-sm text-gray-600 dark:text-gray-400 mb-1">Date</label>
-            <input type="date" id="pomo-date">
-          </div>
-          <div class="grid grid-cols-2 gap-4">
-            <div>
-              <label class="block text-sm text-gray-600 dark:text-gray-400 mb-1">How many 🍅</label>
-              <input type="number" id="pomo-count" placeholder="1" min="1" value="1" onchange="updatePomoPreview()" oninput="updatePomoPreview()">
-            </div>
-            <div>
-              <label class="block text-sm text-gray-600 dark:text-gray-400 mb-1">Minutes each</label>
-              <input type="number" id="pomo-minutes" placeholder="25" min="1" value="25" onchange="updatePomoPreview()" oninput="updatePomoPreview()">
-            </div>
-          </div>
-          <p class="text-xs text-gray-500 dark:text-gray-400 text-center" id="pomo-preview">Adding: 1 × 25 min = 25 min total</p>
+    <!-- Pomodoro Manager Modal -->
+    <div id="pomo-modal" class="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-50 hidden">
+      <div class="bg-white dark:bg-gray-800 rounded-t-3xl sm:rounded-2xl p-6 w-full sm:max-w-md shadow-xl max-h-[90vh] overflow-y-auto">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-lg font-semibold text-gray-900 dark:text-white">🍅 Pomodoro Manager</h3>
+          <button onclick="hideModal('pomo-modal')" class="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg">
+            <svg class="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+          </button>
         </div>
-        <div class="flex gap-3 mt-6">
-          <button onclick="saveManualPomo()" class="flex-1 px-4 py-3 bg-rose-500 text-white rounded-xl font-medium hover:bg-rose-600">Add</button>
-          <button onclick="hideModal('pomo-modal')" class="flex-1 px-4 py-3 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-xl font-medium">Cancel</button>
+
+        <!-- Today's Pomodoros -->
+        <div class="mb-4">
+          <div class="flex items-center justify-between mb-2">
+            <label class="text-sm font-medium text-gray-700 dark:text-gray-300">Today's Pomodoros</label>
+            <span class="text-sm text-gray-500" id="pomo-today-total">0 (0h 0m)</span>
+          </div>
+          <div id="pomo-today-list" class="space-y-2 max-h-40 overflow-y-auto">
+            <p class="text-sm text-gray-400 italic">No pomodoros yet</p>
+          </div>
+        </div>
+
+        <!-- Add New -->
+        <div class="border-t border-gray-200 dark:border-gray-700 pt-4">
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Add New</label>
+          <div class="grid grid-cols-3 gap-3 mb-3">
+            <div>
+              <label class="block text-xs text-gray-500 mb-1">Date</label>
+              <input type="date" id="pomo-date" class="text-sm">
+            </div>
+            <div>
+              <label class="block text-xs text-gray-500 mb-1">Count</label>
+              <input type="number" id="pomo-count" value="1" min="1" class="text-sm" onchange="updatePomoPreview()" oninput="updatePomoPreview()">
+            </div>
+            <div>
+              <label class="block text-xs text-gray-500 mb-1">Minutes</label>
+              <input type="number" id="pomo-minutes" value="25" min="1" class="text-sm" onchange="updatePomoPreview()" oninput="updatePomoPreview()">
+            </div>
+          </div>
+          <p class="text-xs text-gray-500 text-center mb-3" id="pomo-preview">Adding: 1 × 25 min = 25 min</p>
+          <button onclick="saveManualPomo()" class="w-full py-3 bg-rose-500 text-white rounded-xl font-medium hover:bg-rose-600">+ Add Pomodoros</button>
+        </div>
+
+        <!-- History -->
+        <div class="border-t border-gray-200 dark:border-gray-700 pt-4 mt-4">
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">History</label>
+          <div id="pomo-history-list" class="space-y-3 max-h-48 overflow-y-auto">
+            <p class="text-sm text-gray-400 italic">No history yet</p>
+          </div>
         </div>
       </div>
     </div>
@@ -206,15 +235,14 @@
               </div>
             </div>
 
-            <!-- Pomodoro Stats -->
-            <div class="mt-3 pt-3 border-t border-rose-200 dark:border-rose-800 text-xs space-y-1">
+            <!-- Pomodoro Stats (clickable) -->
+            <div onclick="showModal('pomo-modal')" class="mt-3 pt-3 border-t border-rose-200 dark:border-rose-800 text-xs space-y-1 cursor-pointer hover:bg-rose-100/50 dark:hover:bg-rose-900/50 rounded-lg p-2 -mx-2 transition-colors">
               <div class="flex justify-between"><span class="text-gray-500 dark:text-gray-400">Today</span><span class="font-medium text-gray-700 dark:text-gray-300" id="pomo-today-d">0h 0m</span></div>
               <div class="flex justify-between"><span class="text-gray-500 dark:text-gray-400">This Week</span><span class="font-medium text-gray-700 dark:text-gray-300" id="pomo-week-d">0h 0m</span></div>
               <div class="flex justify-between"><span class="text-gray-500 dark:text-gray-400">This Month</span><span class="font-medium text-gray-700 dark:text-gray-300" id="pomo-month-d">0h 0m</span></div>
               <div class="flex justify-between"><span class="text-gray-500 dark:text-gray-400">All Time</span><span class="font-medium text-gray-700 dark:text-gray-300" id="pomo-all-d">0h 0m</span></div>
+              <p class="text-[10px] text-rose-400 text-center mt-1">Tap to manage</p>
             </div>
-            <!-- Manual Add -->
-            <button onclick="showModal('pomo-modal')" class="w-full mt-3 py-1.5 bg-rose-100 dark:bg-rose-900/50 text-rose-600 dark:text-rose-400 rounded-lg text-xs font-medium hover:bg-rose-200 dark:hover:bg-rose-900">+ Add Manual</button>
           </div>
         </div>
       </div>
@@ -714,6 +742,61 @@
         document.getElementById('pomo-count').value = 1;
         document.getElementById('pomo-minutes').value = 25;
         updatePomoPreview();
+        renderTodayPomoList();
+      }
+    }
+
+    function renderTodayPomoList() {
+      const today = new Date().toISOString().split('T')[0];
+      const allPomosWithIndex = pomodoros.map((p, idx) => ({ ...p, globalIndex: idx }));
+      const todayPomos = allPomosWithIndex.filter(p => p.date === today);
+      const totalMins = todayPomos.reduce((sum, p) => sum + p.duration, 0);
+
+      document.getElementById('pomo-today-total').textContent = `${todayPomos.length} (${formatDuration(totalMins)})`;
+
+      // Render today's list (horizontal tomatoes with + button)
+      const listEl = document.getElementById('pomo-today-list');
+      listEl.innerHTML = `
+        <div class="flex flex-wrap gap-1 items-center">
+          ${todayPomos.map(p => `<span onclick="deletePomodoro(${p.globalIndex}, event)" class="cursor-pointer hover:opacity-50 text-xl" title="${p.duration} min - tap to delete">🍅</span>`).join('')}
+          <span onclick="quickAddPomo()" class="cursor-pointer hover:bg-rose-100 dark:hover:bg-rose-900/50 text-rose-500 text-xl w-7 h-7 flex items-center justify-center rounded-full border-2 border-dashed border-rose-300 dark:border-rose-700" title="Add 25 min pomodoro">+</span>
+        </div>
+        ${todayPomos.length > 0 ? '<p class="text-[10px] text-gray-400 mt-1">Tap 🍅 to delete, + to add</p>' : '<p class="text-[10px] text-gray-400 mt-1">Tap + to add a pomodoro</p>'}
+      `;
+
+      // Render history (grouped by date, excluding today)
+      const historyEl = document.getElementById('pomo-history-list');
+      const pastPomos = allPomosWithIndex.filter(p => p.date !== today);
+
+      // Group by date
+      const byDate = {};
+      pastPomos.forEach(p => {
+        if (!byDate[p.date]) byDate[p.date] = [];
+        byDate[p.date].push(p);
+      });
+
+      // Sort dates descending (most recent first)
+      const sortedDates = Object.keys(byDate).sort((a, b) => new Date(b) - new Date(a));
+
+      if (sortedDates.length > 0) {
+        historyEl.innerHTML = sortedDates.map(date => {
+          const dayPomos = byDate[date];
+          const dayMins = dayPomos.reduce((sum, p) => sum + p.duration, 0);
+          const dateLabel = new Date(date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+          return `
+            <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3">
+              <div class="flex items-center justify-between mb-2">
+                <span class="text-sm font-medium text-gray-700 dark:text-gray-300">${dateLabel}</span>
+                <span class="text-xs text-gray-500">${formatDuration(dayMins)}</span>
+              </div>
+              <div class="flex flex-wrap gap-1">
+                ${dayPomos.map(p => `<span onclick="deletePomodoro(${p.globalIndex}, event)" class="cursor-pointer hover:opacity-50" title="${p.duration} min - click to delete">🍅</span>`).join('')}
+              </div>
+            </div>
+          `;
+        }).join('');
+      } else {
+        historyEl.innerHTML = '<p class="text-sm text-gray-400 italic">No history yet</p>';
       }
     }
 
@@ -722,6 +805,23 @@
       const minutes = parseInt(document.getElementById('pomo-minutes').value) || 25;
       const total = count * minutes;
       document.getElementById('pomo-preview').textContent = `Adding: ${count} × ${minutes} min = ${total} min total`;
+    }
+
+    function quickAddPomo() {
+      const today = new Date().toISOString().split('T')[0];
+      pomodoros.push({ date: today, duration: 25 });
+      saveData();
+      updatePomodoroStats();
+      renderTodayPomoList();
+      refreshAll();
+    }
+
+    function quickAddPomoForDate(dateKey) {
+      pomodoros.push({ date: dateKey, duration: 25 });
+      saveData();
+      updatePomodoroStats();
+      openDayModal(dateKey); // Refresh the modal
+      refreshAll();
     }
 
     function saveManualPomo() {
@@ -736,7 +836,10 @@
       saveData();
       updatePomodoroStats();
       refreshAll();
-      hideModal('pomo-modal');
+      // Refresh the list and reset inputs
+      renderTodayPomoList();
+      document.getElementById('pomo-count').value = 1;
+      updatePomoPreview();
     }
     function hideModal(id) { document.getElementById(id).classList.add('hidden'); }
 
@@ -934,9 +1037,10 @@
                 <div class="flex justify-between text-xs md:text-sm mb-2"><span class="text-gray-600 dark:text-gray-400">Questions</span><span class="font-medium text-gray-900 dark:text-white">${stats.todayQs} / ${settings.dailyQs}</span></div>
                 <div class="h-3 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden"><div class="h-full bg-blue-500 rounded-full" style="width:${Math.min(100, (stats.todayQs / settings.dailyQs) * 100)}%"></div></div>
               </div>
-              <div>
+              <div onclick="showModal('pomo-modal')" class="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-lg p-2 -m-2 transition-colors">
                 <div class="flex justify-between text-xs md:text-sm mb-2"><span class="text-gray-600 dark:text-gray-400">🍅 Pomodoros</span><span class="font-medium text-gray-900 dark:text-white">${todayPomoCount} (${formatDuration(todayPomoMins)})</span></div>
                 <div class="text-xl leading-relaxed">${todayPomoDisplay || '<span class="text-gray-300 dark:text-gray-600">—</span>'}</div>
+                <p class="text-[10px] text-gray-400 mt-1">Tap to manage</p>
               </div>
             </div>
           </div>
@@ -1141,7 +1245,37 @@
       document.getElementById('day-questions-display').textContent = dayQs > 0 ? dayQs : '0';
       document.getElementById('day-pomodoros-display').textContent = pomoDisplay;
       document.getElementById('day-notes').value = dayData.notes || '';
+
+      // Render pomodoro list with horizontal tomatoes (tap to delete + button)
+      const pomoItemsEl = document.getElementById('day-pomodoro-items');
+      const pomoHintEl = document.getElementById('day-pomo-hint');
+      // Get pomodoros with their actual indices in the global array
+      const dayPomosWithIndex = pomodoros.map((p, idx) => ({ ...p, globalIndex: idx })).filter(p => p.date === dateKey);
+
+      pomoItemsEl.innerHTML = dayPomosWithIndex.map(p => {
+        return `<span onclick="deletePomodoro(${p.globalIndex}, event)" class="cursor-pointer hover:opacity-50 text-xl" title="${p.duration} min - tap to delete">🍅</span>`;
+      }).join('') + `<span onclick="quickAddPomoForDate('${dateKey}')" class="cursor-pointer hover:bg-rose-100 dark:hover:bg-rose-900/50 text-rose-500 text-xl w-7 h-7 flex items-center justify-center rounded-full border-2 border-dashed border-rose-300 dark:border-rose-700" title="Add 25 min pomodoro">+</span>`;
+
+      pomoHintEl.textContent = dayPomosWithIndex.length > 0 ? 'Tap 🍅 to delete, + to add' : 'Tap + to add a pomodoro';
+
       showModal('day-modal');
+    }
+
+    function deletePomodoro(index, event) {
+      if (event) event.stopPropagation();
+      pomodoros.splice(index, 1);
+      saveData();
+      updatePomodoroStats();
+      // Refresh whichever modal is open
+      const pomoModal = document.getElementById('pomo-modal');
+      const dayModal = document.getElementById('day-modal');
+      if (pomoModal && !pomoModal.classList.contains('hidden')) {
+        renderTodayPomoList();
+      }
+      if (dayModal && !dayModal.classList.contains('hidden') && currentDayKey) {
+        openDayModal(currentDayKey);
+      }
+      refreshAll();
     }
 
     function saveDayModal() {
@@ -1193,16 +1327,16 @@
         const qDisplay = dayQs > 0 ? `Q:${dayQs}` : '';
 
         // Pomodoro display
-        const pomoDisplay = pomoCount > 0 ? '🍅'.repeat(Math.min(pomoCount, 4)) + (pomoCount > 4 ? '+' : '') : '';
+        const pomoDisplay = pomoCount > 0 ? `🍅${pomoCount}` : '';
 
         // Notes display (truncated)
         const noteDisplay = dayNote.notes ? (dayNote.notes.length > 8 ? dayNote.notes.substring(0, 8) + '…' : dayNote.notes) : '';
 
-        html += `<div onclick="openDayModal('${key}')" class="aspect-square rounded-lg flex flex-col items-start justify-start text-xs p-1 cursor-pointer hover:ring-2 hover:ring-blue-300 transition-all ${hasData ? 'bg-blue-50 dark:bg-blue-900/30' : 'bg-gray-50 dark:bg-gray-800'} ${isToday ? 'ring-2 ring-blue-500' : ''}">
-          <span class="${isToday ? 'text-blue-600 font-bold' : 'text-gray-700 dark:text-gray-300'} text-[10px]">${d}</span>
-          ${qDisplay ? `<span class="text-blue-600 dark:text-blue-400 text-[9px] font-medium">${qDisplay}</span>` : ''}
-          ${pomoDisplay ? `<span class="text-[8px] leading-tight">${pomoDisplay}</span>` : ''}
-          ${noteDisplay ? `<span class="text-gray-500 dark:text-gray-400 text-[8px] truncate w-full">${noteDisplay}</span>` : ''}
+        html += `<div onclick="openDayModal('${key}')" class="aspect-square rounded-lg flex flex-col items-start justify-start text-xs p-1.5 cursor-pointer hover:ring-2 hover:ring-blue-300 transition-all ${hasData ? 'bg-blue-50 dark:bg-blue-900/30' : 'bg-gray-50 dark:bg-gray-800'} ${isToday ? 'ring-2 ring-blue-500' : ''}">
+          <span class="${isToday ? 'text-blue-600 font-bold' : 'text-gray-700 dark:text-gray-300'} text-xs">${d}</span>
+          ${qDisplay ? `<span class="text-blue-600 dark:text-blue-400 text-[10px] font-medium">${qDisplay}</span>` : ''}
+          ${pomoDisplay ? `<span class="text-[10px] leading-tight">${pomoDisplay}</span>` : ''}
+          ${noteDisplay ? `<span class="text-gray-500 dark:text-gray-400 text-[9px] truncate w-full">${noteDisplay}</span>` : ''}
         </div>`;
       }
       document.querySelectorAll('#cal-grid').forEach(el => el.innerHTML = html);
