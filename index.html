@@ -1257,15 +1257,23 @@
     }
 
     function resetAll() {
-      if (confirm('This will DELETE all local data and create a new cloud bin. Your current data will be LOST. Continue?')) {
-        localStorage.clear();
-        binId = '';
+      const password = prompt('This will DELETE ALL your data permanently.\n\nEnter your password to confirm:');
+      if (!password) return;
+      if (password !== VALID_PASS) {
+        alert('Incorrect password. Data NOT cleared.');
+        return;
+      }
+      if (confirm('FINAL WARNING: All blocks, pomodoros, and settings will be permanently deleted. Continue?')) {
+        // Clear cloud data
         blocks = [];
         settings = { dailyQs: 80, dailyHours: 4 };
         examDate = '';
         pomodoros = [];
         dailyNotes = [];
-        alert('All data cleared. Please login again.');
+        timerState = { isRunning: false, isPaused: false, isBreak: false, duration: 25, startedAt: null, pausedAt: null, totalPausedMs: 0 };
+        syncToCloud();
+        localStorage.clear();
+        alert('All data cleared successfully.');
         location.reload();
       }
     }
