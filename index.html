@@ -41,7 +41,13 @@
 
   <!-- Login Screen -->
   <div id="login-screen" class="min-h-screen flex items-center justify-center p-4">
-    <input type="password" id="key-input" placeholder="type" class="w-64 text-center" onkeypress="if(event.key==='Enter')tryLogin()">
+    <div class="flex flex-col gap-3 w-64">
+      <input type="password" id="key-input" placeholder="type" class="text-center" onkeypress="if(event.key==='Enter')tryLogin()">
+      <div class="flex gap-2">
+        <button onclick="tryLogin()" class="flex-1 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700">OK</button>
+        <button onclick="document.getElementById('key-input').value=''" class="flex-1 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg text-sm font-medium hover:bg-gray-300 dark:hover:bg-gray-600">Cancel</button>
+      </div>
+    </div>
   </div>
 
   <!-- Main App -->
