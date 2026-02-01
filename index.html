@@ -850,6 +850,14 @@
               </div>
             </div>
             <div class="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm border border-gray-100 dark:border-gray-700">
+              <h3 class="font-semibold text-gray-900 dark:text-white mb-3">Sync</h3>
+              <div class="flex gap-3">
+                <button onclick="forceRefresh()" class="flex-1 py-2 px-4 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-lg text-sm font-medium">🔄 Force Refresh</button>
+                <button onclick="forceSave()" class="flex-1 py-2 px-4 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded-lg text-sm font-medium">💾 Force Save</button>
+              </div>
+              <p class="text-xs text-gray-500 mt-2">Bin ID: <code class="bg-gray-100 dark:bg-gray-700 px-1 rounded">${binId ? binId.substring(0, 12) + '...' : 'none'}</code></p>
+            </div>
+            <div class="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm border border-gray-100 dark:border-gray-700">
               <h3 class="font-semibold text-gray-900 dark:text-white mb-3">Backup</h3>
               <div class="flex gap-3">
                 <button onclick="exportData()" class="flex-1 py-2 px-4 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg text-sm font-medium">Export</button>
@@ -1036,6 +1044,18 @@
     function updateSettings() { settings.dailyQs = parseInt(document.getElementById('set-daily-qs')?.value) || 80; settings.dailyHours = parseInt(document.getElementById('set-daily-hours')?.value) || 4; saveData(); }
     function exportData() { const blob = new Blob([JSON.stringify({ blocks, settings, examDate, pomodoros, dailyNotes }, null, 2)], { type: 'application/json' }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `backup-${new Date().toISOString().split('T')[0]}.json`; a.click(); }
     function importData(e) { const f = e.target.files[0]; if (!f) return; const r = new FileReader(); r.onload = (ev) => { try { const d = JSON.parse(ev.target.result); if (d.blocks) blocks = d.blocks; if (d.settings) settings = d.settings; if (d.examDate) examDate = d.examDate; if (d.pomodoros) pomodoros = d.pomodoros; if (d.dailyNotes) dailyNotes = d.dailyNotes; saveData(); refreshAll(); } catch { alert('Invalid file'); } }; r.readAsText(f); }
+
+    async function forceRefresh() {
+      alert('Refreshing data from cloud...');
+      await loadFromCloud();
+      alert('Data refreshed! Blocks: ' + blocks.length + ', Exam: ' + (examDate || 'not set'));
+    }
+
+    async function forceSave() {
+      alert('Saving data to cloud...');
+      await syncToCloud();
+      alert('Data saved! Blocks: ' + blocks.length + ', Exam: ' + (examDate || 'not set'));
+    }
 
     function logout() {
       localStorage.removeItem('usmle-api-key');
