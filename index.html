@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="theme-color" content="#ffffff">
-  <title>App</title>
+  <title>USMLE Study Tracker</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
   <script>tailwind.config = { darkMode: 'class' }</script>
@@ -114,12 +114,40 @@
       </div>
     </div>
 
+    <!-- Manual Pomodoro Modal -->
+    <div id="pomo-modal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 hidden">
+      <div class="bg-white dark:bg-gray-800 rounded-2xl p-6 w-full max-w-sm shadow-xl">
+        <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">🍅 Add Pomodoros</h3>
+        <div class="space-y-4">
+          <div>
+            <label class="block text-sm text-gray-600 dark:text-gray-400 mb-1">Date</label>
+            <input type="date" id="pomo-date">
+          </div>
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm text-gray-600 dark:text-gray-400 mb-1">How many 🍅</label>
+              <input type="number" id="pomo-count" placeholder="1" min="1" value="1" onchange="updatePomoPreview()" oninput="updatePomoPreview()">
+            </div>
+            <div>
+              <label class="block text-sm text-gray-600 dark:text-gray-400 mb-1">Minutes each</label>
+              <input type="number" id="pomo-minutes" placeholder="25" min="1" value="25" onchange="updatePomoPreview()" oninput="updatePomoPreview()">
+            </div>
+          </div>
+          <p class="text-xs text-gray-500 dark:text-gray-400 text-center" id="pomo-preview">Adding: 1 × 25 min = 25 min total</p>
+        </div>
+        <div class="flex gap-3 mt-6">
+          <button onclick="saveManualPomo()" class="flex-1 px-4 py-3 bg-rose-500 text-white rounded-xl font-medium hover:bg-rose-600">Add</button>
+          <button onclick="hideModal('pomo-modal')" class="flex-1 px-4 py-3 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-xl font-medium">Cancel</button>
+        </div>
+      </div>
+    </div>
+
     <!-- Desktop Layout -->
     <div class="hidden md:flex min-h-screen">
       <div class="w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 p-6 flex flex-col fixed h-full overflow-y-auto">
         <div class="mb-4 flex items-center justify-between">
           <div>
-            <h1 class="text-xl font-bold text-gray-900 dark:text-white">USMLE Step 3</h1>
+            <h1 class="text-xl font-bold text-gray-900 dark:text-white">USMLE Study Tracker</h1>
             <p class="text-sm text-gray-500 dark:text-gray-400">Study Tracker</p>
           </div>
           <button onclick="toggleDarkMode()" class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700">
@@ -185,6 +213,8 @@
               <div class="flex justify-between"><span class="text-gray-500 dark:text-gray-400">This Month</span><span class="font-medium text-gray-700 dark:text-gray-300" id="pomo-month-d">0h 0m</span></div>
               <div class="flex justify-between"><span class="text-gray-500 dark:text-gray-400">All Time</span><span class="font-medium text-gray-700 dark:text-gray-300" id="pomo-all-d">0h 0m</span></div>
             </div>
+            <!-- Manual Add -->
+            <button onclick="showModal('pomo-modal')" class="w-full mt-3 py-1.5 bg-rose-100 dark:bg-rose-900/50 text-rose-600 dark:text-rose-400 rounded-lg text-xs font-medium hover:bg-rose-200 dark:hover:bg-rose-900">+ Add Manual</button>
           </div>
         </div>
       </div>
@@ -195,7 +225,7 @@
     <div class="md:hidden flex flex-col min-h-screen">
       <div class="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-4 py-3 flex items-center justify-between sticky top-0 z-40">
         <div>
-          <h1 class="text-lg font-bold text-gray-900 dark:text-white">USMLE Step 3</h1>
+          <h1 class="text-lg font-bold text-gray-900 dark:text-white">USMLE Study Tracker</h1>
           <div class="flex items-center gap-2 text-xs">
             <div class="w-2 h-2 rounded-full bg-green-500" id="sync-dot-m"></div>
             <span class="text-gray-500 dark:text-gray-400" id="sync-text-m">Synced</span>
@@ -240,11 +270,21 @@
     let currentFilter = 'all', currentDate = new Date(), currentBlockId = null, currentTab = 'dashboard', currentDayKey = null;
     let scoreCharts = [], dailyCharts = [], qsDonuts = [], scoreDonuts = [], qbankDonuts = [];
 
-    // Timer state
+    // Timer state (synced to cloud)
+    let timerState = {
+      isRunning: false,
+      isPaused: false,
+      isBreak: false,
+      duration: 25,
+      startedAt: null,      // ISO timestamp when timer started
+      pausedAt: null,       // ISO timestamp when paused
+      totalPausedMs: 0      // Total milliseconds spent paused
+    };
+
+    // Local timer variables
     let timerInterval = null;
     let timerSeconds = 25 * 60;
     let timerDuration = 25;
-    let timerElapsed = 0; // Track elapsed time
     let isBreak = false;
     let isRunning = false;
     let isPaused = false;
@@ -288,6 +328,7 @@
       if (isRunning) return;
       timerDuration = parseInt(mins);
       timerSeconds = timerDuration * 60;
+      timerState.duration = timerDuration;
       updateTimerDisplay();
     }
 
@@ -344,45 +385,86 @@
       isRunning = true;
       isPaused = false;
       isBreak = false;
-      timerElapsed = 0;
+
+      // Save start time to cloud
+      timerState = {
+        isRunning: true,
+        isPaused: false,
+        isBreak: false,
+        duration: timerDuration,
+        startedAt: new Date().toISOString(),
+        pausedAt: null,
+        totalPausedMs: 0
+      };
+      syncTimerState();
+
       timerInterval = setInterval(timerTick, 1000);
       updateTimerDisplay();
     }
 
     function pauseTimer() {
       if (isPaused) {
-        // Resume
+        // Resume - add paused time to total
+        const pausedMs = new Date() - new Date(timerState.pausedAt);
+        timerState.totalPausedMs += pausedMs;
+        timerState.isPaused = false;
+        timerState.pausedAt = null;
         isPaused = false;
         timerInterval = setInterval(timerTick, 1000);
       } else {
         // Pause
+        timerState.isPaused = true;
+        timerState.pausedAt = new Date().toISOString();
         isPaused = true;
         clearInterval(timerInterval);
       }
+      syncTimerState();
       updateTimerDisplay();
     }
 
     function stopTimer() {
       clearInterval(timerInterval);
 
-      // Check if we should count this session
-      if (!isBreak && timerElapsed >= 5 * 60) {
-        // Count partial pomodoro (elapsed time in minutes)
-        const elapsedMins = Math.floor(timerElapsed / 60);
-        addPomodoro(elapsedMins);
+      // Calculate elapsed time for partial pomodoro
+      if (timerState.startedAt && !isBreak) {
+        const elapsedMs = getTimerElapsedMs();
+        const elapsedMins = Math.floor(elapsedMs / 60000);
+        if (elapsedMins >= 5) {
+          addPomodoro(elapsedMins);
+        }
       }
 
+      // Reset timer state
       isRunning = false;
       isPaused = false;
       isBreak = false;
-      timerElapsed = 0;
       timerSeconds = timerDuration * 60;
+
+      timerState = {
+        isRunning: false,
+        isPaused: false,
+        isBreak: false,
+        duration: timerDuration,
+        startedAt: null,
+        pausedAt: null,
+        totalPausedMs: 0
+      };
+      syncTimerState();
       updateTimerDisplay();
     }
 
+    function getTimerElapsedMs() {
+      if (!timerState.startedAt) return 0;
+      const now = timerState.isPaused ? new Date(timerState.pausedAt) : new Date();
+      return (now - new Date(timerState.startedAt)) - timerState.totalPausedMs;
+    }
+
     function timerTick() {
-      timerSeconds--;
-      if (!isBreak) timerElapsed++;
+      // Calculate remaining time based on timestamps
+      const totalMs = timerState.duration * 60 * 1000;
+      const elapsedMs = getTimerElapsedMs();
+      const remainingMs = totalMs - elapsedMs;
+      timerSeconds = Math.max(0, Math.ceil(remainingMs / 1000));
 
       updateTimerDisplay();
 
@@ -390,10 +472,14 @@
         playRing();
         if (!isBreak) {
           // Work session complete - add full pomodoro
-          addPomodoro(timerDuration);
+          addPomodoro(timerState.duration);
           // Start break
           isBreak = true;
-          timerSeconds = 5 * 60;
+          timerState.isBreak = true;
+          timerState.startedAt = new Date().toISOString();
+          timerState.duration = 5; // 5 min break
+          timerState.totalPausedMs = 0;
+          syncTimerState();
           updateTimerDisplay();
         } else {
           // Break complete - reset
@@ -401,11 +487,63 @@
           isRunning = false;
           isPaused = false;
           isBreak = false;
-          timerElapsed = 0;
           timerSeconds = timerDuration * 60;
+
+          timerState = {
+            isRunning: false,
+            isPaused: false,
+            isBreak: false,
+            duration: timerDuration,
+            startedAt: null,
+            pausedAt: null,
+            totalPausedMs: 0
+          };
+          syncTimerState();
           updateTimerDisplay();
         }
       }
+    }
+
+    function syncTimerState() {
+      // Save timer state to cloud (debounced with main save)
+      saveData();
+    }
+
+    function restoreTimerState() {
+      if (!timerState || !timerState.isRunning) return;
+
+      // Restore local state from synced state
+      isRunning = timerState.isRunning;
+      isPaused = timerState.isPaused;
+      isBreak = timerState.isBreak;
+      timerDuration = timerState.duration;
+
+      // Calculate current remaining time
+      const totalMs = timerState.duration * 60 * 1000;
+      const elapsedMs = getTimerElapsedMs();
+      const remainingMs = totalMs - elapsedMs;
+
+      if (remainingMs <= 0) {
+        // Timer already finished while away
+        if (!isBreak) {
+          addPomodoro(timerState.duration);
+        }
+        // Reset
+        isRunning = false;
+        isPaused = false;
+        isBreak = false;
+        timerState = { isRunning: false, isPaused: false, isBreak: false, duration: 25, startedAt: null, pausedAt: null, totalPausedMs: 0 };
+        timerSeconds = timerDuration * 60;
+        syncTimerState();
+      } else {
+        timerSeconds = Math.ceil(remainingMs / 1000);
+        // Start the interval if not paused
+        if (!isPaused) {
+          clearInterval(timerInterval);
+          timerInterval = setInterval(timerTick, 1000);
+        }
+      }
+      updateTimerDisplay();
     }
 
     function addPomodoro(minutes) {
@@ -513,7 +651,11 @@
             examDate = d.record.examDate || '';
             pomodoros = d.record.pomodoros || [];
             dailyNotes = d.record.dailyNotes || [];
-            console.log('Parsed - blocks:', blocks.length, 'examDate:', examDate);
+            // Load timer state
+            if (d.record.timerState) {
+              timerState = d.record.timerState;
+            }
+            console.log('Parsed - blocks:', blocks.length, 'examDate:', examDate, 'timerRunning:', timerState.isRunning);
           }
           updateSyncStatus('synced');
         } else {
@@ -521,6 +663,7 @@
           updateSyncStatus('error');
         }
         updatePomodoroStats();
+        restoreTimerState(); // Restore timer if it was running
         refreshAll();
       } catch (e) {
         console.error('Load error:', e);
@@ -535,7 +678,7 @@
         const res = await fetch(`https://api.jsonbin.io/v3/b/${binId}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json', 'X-Master-Key': apiKey },
-          body: JSON.stringify({ blocks, settings, examDate, pomodoros, dailyNotes, lastSync: new Date().toISOString() })
+          body: JSON.stringify({ blocks, settings, examDate, pomodoros, dailyNotes, timerState, lastSync: new Date().toISOString() })
         });
         if (res.ok) {
           console.log('Saved to cloud - blocks:', blocks.length, 'examDate:', examDate);
@@ -563,7 +706,38 @@
     function saveData() { syncToCloud(); }
 
     function toggleDarkMode() { darkMode = !darkMode; document.documentElement.classList.toggle('dark'); localStorage.setItem('usmle-dark', darkMode); refreshAll(); }
-    function showModal(id) { document.getElementById(id).classList.remove('hidden'); if (id === 'exam-modal') document.getElementById('exam-date-input').value = examDate; }
+    function showModal(id) {
+      document.getElementById(id).classList.remove('hidden');
+      if (id === 'exam-modal') document.getElementById('exam-date-input').value = examDate;
+      if (id === 'pomo-modal') {
+        document.getElementById('pomo-date').value = new Date().toISOString().split('T')[0];
+        document.getElementById('pomo-count').value = 1;
+        document.getElementById('pomo-minutes').value = 25;
+        updatePomoPreview();
+      }
+    }
+
+    function updatePomoPreview() {
+      const count = parseInt(document.getElementById('pomo-count').value) || 1;
+      const minutes = parseInt(document.getElementById('pomo-minutes').value) || 25;
+      const total = count * minutes;
+      document.getElementById('pomo-preview').textContent = `Adding: ${count} × ${minutes} min = ${total} min total`;
+    }
+
+    function saveManualPomo() {
+      const date = document.getElementById('pomo-date').value;
+      const count = parseInt(document.getElementById('pomo-count').value) || 1;
+      const minutes = parseInt(document.getElementById('pomo-minutes').value) || 25;
+      if (!date) return;
+      // Add multiple pomodoro entries
+      for (let i = 0; i < count; i++) {
+        pomodoros.push({ date, duration: minutes });
+      }
+      saveData();
+      updatePomodoroStats();
+      refreshAll();
+      hideModal('pomo-modal');
+    }
     function hideModal(id) { document.getElementById(id).classList.add('hidden'); }
 
     function updateCountdown() {
@@ -621,10 +795,11 @@
       for (let i = 0; i < 365; i++) { const d = new Date(today); d.setDate(d.getDate() - i); if (completed.some(b => b.date === d.toISOString().split('T')[0])) streak++; else if (i > 0) break; }
       const todayKey = new Date().toISOString().split('T')[0];
       const todayBlocks = completed.filter(b => b.date === todayKey);
+      const todayBlocksCount = todayBlocks.length;
       const todayQs = todayBlocks.reduce((s, b) => s + (b.total || 40), 0);
       const todayHours = todayBlocks.reduce((s, b) => s + (b.hours || 0), 0);
       const qbankStats = QBANKS.map(qb => { const qbB = completed.filter(b => b.id.startsWith(qb.id)); const c = qbB.reduce((s, b) => s + (b.correct || 0), 0), t = qbB.reduce((s, b) => s + (b.total || 40), 0); return { ...qb, completed: qbB.length, qsDone: t, qsTotal: qb.blocks * 40, score: t > 0 ? (c / t * 100) : 0 }; });
-      return { completedBlocks: completed.length, totalQs, totalCorrect, totalHours, avgScore, streak, todayQs, todayHours, qbankStats };
+      return { completedBlocks: completed.length, totalQs, totalCorrect, totalHours, avgScore, streak, todayQs, todayHours, todayBlocksCount, qbankStats };
     }
 
     function renderNav() {
@@ -726,6 +901,7 @@
               <div class="flex justify-between"><span class="text-gray-500">Month</span><span class="font-medium" id="pomo-month-m">0h 0m</span></div>
               <div class="flex justify-between"><span class="text-gray-500">All</span><span class="font-medium" id="pomo-all-m">0h 0m</span></div>
             </div>
+            <button onclick="showModal('pomo-modal')" class="w-full mt-3 py-1.5 bg-rose-100 dark:bg-rose-900/50 text-rose-600 dark:text-rose-400 rounded-lg text-xs font-medium hover:bg-rose-200 dark:hover:bg-rose-900">+ Add Manual</button>
           </div>
 
           <div class="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 mb-6">
@@ -752,14 +928,14 @@
           </div>
 
           <div class="bg-white dark:bg-gray-800 rounded-2xl p-4 md:p-6 shadow-sm border border-gray-100 dark:border-gray-700 mb-6">
-            <h3 class="text-base md:text-lg font-semibold text-gray-900 dark:text-white mb-4">Today's Progress</h3>
+            <h3 class="text-base md:text-lg font-semibold text-gray-900 dark:text-white mb-4">Today's Progress <span class="text-gray-400 font-normal">(${stats.todayBlocksCount} blocks)</span></h3>
             <div class="grid grid-cols-2 gap-6">
               <div>
                 <div class="flex justify-between text-xs md:text-sm mb-2"><span class="text-gray-600 dark:text-gray-400">Questions</span><span class="font-medium text-gray-900 dark:text-white">${stats.todayQs} / ${settings.dailyQs}</span></div>
                 <div class="h-3 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden"><div class="h-full bg-blue-500 rounded-full" style="width:${Math.min(100, (stats.todayQs / settings.dailyQs) * 100)}%"></div></div>
               </div>
               <div>
-                <div class="flex justify-between text-xs md:text-sm mb-2"><span class="text-gray-600 dark:text-gray-400">🍅 Pomodoros</span><span class="font-medium text-gray-900 dark:text-white">${formatDuration(todayPomoMins)}</span></div>
+                <div class="flex justify-between text-xs md:text-sm mb-2"><span class="text-gray-600 dark:text-gray-400">🍅 Pomodoros</span><span class="font-medium text-gray-900 dark:text-white">${todayPomoCount} (${formatDuration(todayPomoMins)})</span></div>
                 <div class="text-xl leading-relaxed">${todayPomoDisplay || '<span class="text-gray-300 dark:text-gray-600">—</span>'}</div>
               </div>
             </div>
@@ -877,6 +1053,10 @@
         renderCalendar();
         updateTimerDisplay();
         updatePomodoroStats();
+        // Scroll heatmap to the right to show most recent activity
+        document.querySelectorAll('.heatmap-wrapper').forEach(el => {
+          el.scrollLeft = el.scrollWidth;
+        });
       }, 50);
     }
 
@@ -1055,8 +1235,8 @@
     }
 
     function updateSettings() { settings.dailyQs = parseInt(document.getElementById('set-daily-qs')?.value) || 80; settings.dailyHours = parseInt(document.getElementById('set-daily-hours')?.value) || 4; saveData(); }
-    function exportData() { const blob = new Blob([JSON.stringify({ blocks, settings, examDate, pomodoros, dailyNotes }, null, 2)], { type: 'application/json' }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `backup-${new Date().toISOString().split('T')[0]}.json`; a.click(); }
-    function importData(e) { const f = e.target.files[0]; if (!f) return; const r = new FileReader(); r.onload = (ev) => { try { const d = JSON.parse(ev.target.result); if (d.blocks) blocks = d.blocks; if (d.settings) settings = d.settings; if (d.examDate) examDate = d.examDate; if (d.pomodoros) pomodoros = d.pomodoros; if (d.dailyNotes) dailyNotes = d.dailyNotes; saveData(); refreshAll(); } catch { alert('Invalid file'); } }; r.readAsText(f); }
+    function exportData() { const blob = new Blob([JSON.stringify({ blocks, settings, examDate, pomodoros, dailyNotes, timerState }, null, 2)], { type: 'application/json' }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `backup-${new Date().toISOString().split('T')[0]}.json`; a.click(); }
+    function importData(e) { const f = e.target.files[0]; if (!f) return; const r = new FileReader(); r.onload = (ev) => { try { const d = JSON.parse(ev.target.result); if (d.blocks) blocks = d.blocks; if (d.settings) settings = d.settings; if (d.examDate) examDate = d.examDate; if (d.pomodoros) pomodoros = d.pomodoros; if (d.dailyNotes) dailyNotes = d.dailyNotes; if (d.timerState) timerState = d.timerState; saveData(); restoreTimerState(); refreshAll(); } catch { alert('Invalid file'); } }; r.readAsText(f); }
 
     async function forceRefresh() {
       alert('Refreshing data from cloud...');
