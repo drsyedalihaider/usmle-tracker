@@ -238,7 +238,7 @@
     const isLoggedIn = localStorage.getItem('usmle-logged-in') === 'true';
     let darkMode = localStorage.getItem('usmle-dark') === 'true';
     let currentFilter = 'all', currentDate = new Date(), currentBlockId = null, currentTab = 'dashboard', currentDayKey = null;
-    let scoreChart, dailyChart, qsDonut, scoreDonut, qbankDonuts = [];
+    let scoreCharts = [], dailyCharts = [], qsDonuts = [], scoreDonuts = [], qbankDonuts = [];
 
     // Timer state
     let timerInterval = null;
@@ -308,33 +308,35 @@
       const statusText = isBreak ? '☕ Break' : (isRunning ? (isPaused ? '⏸️ Paused' : '🍅 Focus') : '');
 
       ['d', 'm'].forEach(v => {
-        const el = document.getElementById(`timer-display-${v}`);
-        const statusEl = document.getElementById(`timer-status-${v}`);
-        if (el) el.textContent = display;
-        if (statusEl) statusEl.textContent = statusText;
+        // Use querySelectorAll to update ALL elements with these IDs (handles duplicate mobile elements)
+        document.querySelectorAll(`[id="timer-display-${v}"]`).forEach(el => el.textContent = display);
+        document.querySelectorAll(`[id="timer-status-${v}"]`).forEach(el => el.textContent = statusText);
 
-        // Toggle button visibility
-        const startRow = document.getElementById(`timer-start-row-${v}`);
-        const runningRow = document.getElementById(`timer-running-row-${v}`);
-        const pauseBtn = document.getElementById(`pause-btn-${v}`);
-
-        if (startRow && runningRow) {
+        // Toggle button visibility for ALL matching elements
+        document.querySelectorAll(`[id="timer-start-row-${v}"]`).forEach(startRow => {
           if (isRunning) {
             startRow.classList.add('hidden');
+          } else {
+            startRow.classList.remove('hidden');
+          }
+        });
+
+        document.querySelectorAll(`[id="timer-running-row-${v}"]`).forEach(runningRow => {
+          if (isRunning) {
             runningRow.classList.remove('hidden');
             runningRow.classList.add('flex');
           } else {
-            startRow.classList.remove('hidden');
             runningRow.classList.add('hidden');
             runningRow.classList.remove('flex');
           }
-        }
-        if (pauseBtn) {
+        });
+
+        document.querySelectorAll(`[id="pause-btn-${v}"]`).forEach(pauseBtn => {
           pauseBtn.textContent = isPaused ? 'Resume' : 'Pause';
           pauseBtn.className = isPaused
             ? 'flex-1 py-2 bg-green-500 text-white rounded-lg text-sm font-medium hover:bg-green-600'
             : 'flex-1 py-2 bg-yellow-500 text-white rounded-lg text-sm font-medium hover:bg-yellow-600';
-        }
+        });
       });
     }
 
@@ -454,15 +456,11 @@
     function updatePomodoroStats() {
       const stats = getPomodoroStats();
       ['d', 'm'].forEach(v => {
-        const todayEl = document.getElementById(`pomo-today-${v}`);
-        const weekEl = document.getElementById(`pomo-week-${v}`);
-        const monthEl = document.getElementById(`pomo-month-${v}`);
-        const allEl = document.getElementById(`pomo-all-${v}`);
-
-        if (todayEl) todayEl.textContent = formatDuration(stats.todayMins);
-        if (weekEl) weekEl.textContent = formatDuration(stats.weekMins);
-        if (monthEl) monthEl.textContent = formatDuration(stats.monthMins);
-        if (allEl) allEl.textContent = formatDuration(stats.allMins);
+        // Use querySelectorAll to update ALL elements with these IDs (handles duplicates)
+        document.querySelectorAll(`[id="pomo-today-${v}"]`).forEach(el => el.textContent = formatDuration(stats.todayMins));
+        document.querySelectorAll(`[id="pomo-week-${v}"]`).forEach(el => el.textContent = formatDuration(stats.weekMins));
+        document.querySelectorAll(`[id="pomo-month-${v}"]`).forEach(el => el.textContent = formatDuration(stats.monthMins));
+        document.querySelectorAll(`[id="pomo-all-${v}"]`).forEach(el => el.textContent = formatDuration(stats.allMins));
       });
     }
 
@@ -885,27 +883,33 @@
     function renderDonutCharts() {
       const stats = getStats();
       const bg = darkMode ? '#374151' : '#e5e7eb';
-      if (qsDonut) qsDonut.destroy();
-      if (scoreDonut) scoreDonut.destroy();
-      const qsCtx = document.getElementById('qsDonutChart');
-      const scoreCtx = document.getElementById('scoreDonutChart');
-      if (qsCtx) qsDonut = new Chart(qsCtx, { type: 'doughnut', data: { datasets: [{ data: [stats.totalQs, Math.max(0, TOTAL_QS - stats.totalQs)], backgroundColor: ['#3B82F6', bg], borderWidth: 0 }] }, options: { cutout: '75%', responsive: true, plugins: { legend: { display: false }, tooltip: { enabled: false } } } });
-      if (scoreCtx) { const c = stats.avgScore >= 70 ? '#10B981' : stats.avgScore >= 60 ? '#F59E0B' : '#EF4444'; scoreDonut = new Chart(scoreCtx, { type: 'doughnut', data: { datasets: [{ data: [stats.avgScore, Math.max(0, 100 - stats.avgScore)], backgroundColor: [c, bg], borderWidth: 0 }] }, options: { cutout: '75%', responsive: true, plugins: { legend: { display: false }, tooltip: { enabled: false } } } }); }
 
-      // Render qbank mini donuts
-      qbankDonuts.forEach(d => d.destroy());
-      qbankDonuts = [];
+      // Destroy existing charts
+      qsDonuts.forEach(c => c.destroy()); qsDonuts = [];
+      scoreDonuts.forEach(c => c.destroy()); scoreDonuts = [];
+      qbankDonuts.forEach(c => c.destroy()); qbankDonuts = [];
+
+      // Render QS donuts on ALL matching canvases
+      document.querySelectorAll('[id="qsDonutChart"]').forEach(ctx => {
+        qsDonuts.push(new Chart(ctx, { type: 'doughnut', data: { datasets: [{ data: [stats.totalQs, Math.max(0, TOTAL_QS - stats.totalQs)], backgroundColor: ['#3B82F6', bg], borderWidth: 0 }] }, options: { cutout: '75%', responsive: true, plugins: { legend: { display: false }, tooltip: { enabled: false } } } }));
+      });
+
+      // Render score donuts on ALL matching canvases
+      const scoreColor = stats.avgScore >= 70 ? '#10B981' : stats.avgScore >= 60 ? '#F59E0B' : '#EF4444';
+      document.querySelectorAll('[id="scoreDonutChart"]').forEach(ctx => {
+        scoreDonuts.push(new Chart(ctx, { type: 'doughnut', data: { datasets: [{ data: [stats.avgScore, Math.max(0, 100 - stats.avgScore)], backgroundColor: [scoreColor, bg], borderWidth: 0 }] }, options: { cutout: '75%', responsive: true, plugins: { legend: { display: false }, tooltip: { enabled: false } } } }));
+      });
+
+      // Render qbank mini donuts on ALL matching canvases
       stats.qbankStats.forEach((qb, i) => {
-        const ctx = document.getElementById(`qbankDonut${i}`);
-        if (ctx) {
+        document.querySelectorAll(`[id="qbankDonut${i}"]`).forEach(ctx => {
           const c = qb.score >= 70 ? '#10B981' : qb.score >= 60 ? '#F59E0B' : '#EF4444';
-          const chart = new Chart(ctx, {
+          qbankDonuts.push(new Chart(ctx, {
             type: 'doughnut',
             data: { datasets: [{ data: [qb.score, Math.max(0, 100 - qb.score)], backgroundColor: [c, bg], borderWidth: 0 }] },
             options: { cutout: '70%', responsive: true, plugins: { legend: { display: false }, tooltip: { enabled: false } } }
-          });
-          qbankDonuts.push(chart);
-        }
+          }));
+        });
       });
     }
 
@@ -1034,10 +1038,20 @@
       const scoreData = completed.slice(-15).map(b => ((b.correct / (b.total || 40)) * 100).toFixed(0)), scoreLabels = completed.slice(-15).map((_, i) => i + 1);
       const dailyMap = {}; completed.forEach(b => { dailyMap[b.date] = (dailyMap[b.date] || 0) + (b.total || 40); });
       const daily = Object.entries(dailyMap).sort((a, b) => new Date(a[0]) - new Date(b[0])).slice(-10);
-      if (scoreChart) scoreChart.destroy(); if (dailyChart) dailyChart.destroy();
-      const ctx1 = document.getElementById('scoreChart'), ctx2 = document.getElementById('dailyChart');
-      if (ctx1) scoreChart = new Chart(ctx1, { type: 'line', data: { labels: scoreLabels, datasets: [{ data: scoreData, borderColor: '#3B82F6', backgroundColor: 'rgba(59,130,246,0.1)', fill: true, tension: 0.3 }] }, options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, max: 100, ticks: { color: textColor }, grid: { color: gridColor } }, x: { ticks: { color: textColor }, grid: { display: false } } } } });
-      if (ctx2) dailyChart = new Chart(ctx2, { type: 'bar', data: { labels: daily.map(([d]) => new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })), datasets: [{ data: daily.map(([, v]) => v), backgroundColor: '#3B82F6', borderRadius: 4 }] }, options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { ticks: { color: textColor }, grid: { color: gridColor } }, x: { ticks: { color: textColor }, grid: { display: false } } } } });
+
+      // Destroy existing charts
+      scoreCharts.forEach(c => c.destroy()); scoreCharts = [];
+      dailyCharts.forEach(c => c.destroy()); dailyCharts = [];
+
+      // Render score trend chart on ALL matching canvases
+      document.querySelectorAll('[id="scoreChart"]').forEach(ctx => {
+        scoreCharts.push(new Chart(ctx, { type: 'line', data: { labels: scoreLabels, datasets: [{ data: scoreData, borderColor: '#3B82F6', backgroundColor: 'rgba(59,130,246,0.1)', fill: true, tension: 0.3 }] }, options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, max: 100, ticks: { color: textColor }, grid: { color: gridColor } }, x: { ticks: { color: textColor }, grid: { display: false } } } } }));
+      });
+
+      // Render daily questions chart on ALL matching canvases
+      document.querySelectorAll('[id="dailyChart"]').forEach(ctx => {
+        dailyCharts.push(new Chart(ctx, { type: 'bar', data: { labels: daily.map(([d]) => new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })), datasets: [{ data: daily.map(([, v]) => v), backgroundColor: '#3B82F6', borderRadius: 4 }] }, options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { ticks: { color: textColor }, grid: { color: gridColor } }, x: { ticks: { color: textColor }, grid: { display: false } } } } }));
+      });
     }
 
     function updateSettings() { settings.dailyQs = parseInt(document.getElementById('set-daily-qs')?.value) || 80; settings.dailyHours = parseInt(document.getElementById('set-daily-hours')?.value) || 4; saveData(); }
