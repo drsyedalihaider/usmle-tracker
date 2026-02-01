@@ -247,9 +247,13 @@
 
     // Check if already logged in
     if (apiKey && binId) {
+      initApp();
+    }
+
+    async function initApp() {
       document.getElementById('login-screen').classList.add('hidden');
       document.getElementById('app').classList.remove('hidden');
-      loadFromCloud();
+      await loadFromCloud();
     }
 
     // Audio context for timer ring
@@ -462,17 +466,24 @@
 
       updateSyncStatus('syncing');
       try {
+        // Try to find existing bin
         const listRes = await fetch('https://api.jsonbin.io/v3/c/uncategorized/bins', { headers: { 'X-Master-Key': apiKey } });
         if (listRes.ok) {
           const bins = await listRes.json();
+          console.log('Found bins:', bins);
           const existing = bins.find(b => b.snippetMeta && b.snippetMeta.name === 'usmle-tracker');
           if (existing) {
             binId = existing.id;
             localStorage.setItem('usmle-bin-id', binId);
+            console.log('Found existing bin:', binId);
           }
+        } else {
+          console.log('Could not list bins, will create new one');
         }
 
         if (binId) {
+          document.getElementById('login-screen').classList.add('hidden');
+          document.getElementById('app').classList.remove('hidden');
           await loadFromCloud();
         } else {
           const res = await fetch('https://api.jsonbin.io/v3/b', {
@@ -483,14 +494,15 @@
           if (res.ok) {
             binId = (await res.json()).metadata.id;
             localStorage.setItem('usmle-bin-id', binId);
+            document.getElementById('login-screen').classList.add('hidden');
+            document.getElementById('app').classList.remove('hidden');
+            updateSyncStatus('synced');
+            updatePomodoroStats();
+            refreshAll();
+          } else {
+            throw new Error('Failed to create bin');
           }
         }
-
-        document.getElementById('login-screen').classList.add('hidden');
-        document.getElementById('app').classList.remove('hidden');
-        updateSyncStatus('synced');
-        updatePomodoroStats();
-        refreshAll();
       } catch (e) {
         document.getElementById('key-input').value = '';
         document.getElementById('key-input').placeholder = 'invalid';
@@ -505,31 +517,48 @@
         const res = await fetch(`https://api.jsonbin.io/v3/b/${binId}/latest`, { headers: { 'X-Master-Key': apiKey } });
         if (res.ok) {
           const d = await res.json();
+          console.log('Loaded data:', d);
           if (d.record) {
             blocks = d.record.blocks || [];
             settings = d.record.settings || settings;
             examDate = d.record.examDate || '';
             pomodoros = d.record.pomodoros || [];
             dailyNotes = d.record.dailyNotes || [];
+            console.log('Parsed - blocks:', blocks.length, 'examDate:', examDate);
           }
+          updateSyncStatus('synced');
+        } else {
+          console.error('Load failed:', res.status, res.statusText);
+          updateSyncStatus('error');
         }
-        updateSyncStatus('synced');
         updatePomodoroStats();
         refreshAll();
-      } catch { updateSyncStatus('error'); }
+      } catch (e) {
+        console.error('Load error:', e);
+        updateSyncStatus('error');
+      }
     }
 
     async function syncToCloud() {
       if (!apiKey || !binId) return;
       updateSyncStatus('syncing');
       try {
-        await fetch(`https://api.jsonbin.io/v3/b/${binId}`, {
+        const res = await fetch(`https://api.jsonbin.io/v3/b/${binId}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json', 'X-Master-Key': apiKey },
           body: JSON.stringify({ blocks, settings, examDate, pomodoros, dailyNotes, lastSync: new Date().toISOString() })
         });
-        updateSyncStatus('synced');
-      } catch { updateSyncStatus('error'); }
+        if (res.ok) {
+          console.log('Saved to cloud - blocks:', blocks.length, 'examDate:', examDate);
+          updateSyncStatus('synced');
+        } else {
+          console.error('Save failed:', res.status, res.statusText);
+          updateSyncStatus('error');
+        }
+      } catch (e) {
+        console.error('Save error:', e);
+        updateSyncStatus('error');
+      }
     }
 
     function updateSyncStatus(s) {
